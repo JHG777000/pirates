@@ -80,7 +80,7 @@
          
      }
     
-      }
+ }
 
  void RKMath_Add(float outvec[], const float vec_a[], const float vec_b[], const int size) {
     
