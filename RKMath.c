@@ -38,7 +38,7 @@
     return retval ;
  }
 
- void RKMath_MUltiVecProc(float outvec[], const float vec_a[],  const int a_size, const float vec_b[], const int b_size, RKMultiVecType MultiVecType) {
+ void RKMath_MultiVecProc(float outvec[], const float vec_a[],  const int a_size, const float vec_b[], const int b_size, RKMultiVecType MultiVecType) {
      
      static RKMultiVecFunc MyFuncList[] = {RKMath_Add,RKMath_Sub,RKMath_Mul,RKMath_Div} ;
      
