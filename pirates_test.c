@@ -68,7 +68,7 @@ void pirates_teststuff(codename_scene scene, float MouseX, float MouseY) {
          w++ ;
     }
     
-    RKMath_MUltiVecProc(BigVec, SmallVec, 3, BigVec, 15, RKAdd) ;
+    RKMath_MultiVecProc(BigVec, SmallVec, 3, BigVec, 15, RKAdd) ;
     
     w = 0 ;
     

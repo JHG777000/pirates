@@ -22,6 +22,16 @@
 
  typedef void (*RKMultiVecFunc)(float outvec[], const float vec_a[], const float vec_b[], const int size) ;
 
+ static void RKMath_RKMultiDot(float outvec[], const float vec_a[], const float vec_b[], const int size) {
+    
+     outvec[0] = RKMath_Dot(vec_a, vec_b, size) ;
+ }
+
+ static void RKMath_RKMultiCross(float outvec[], const float vec_a[], const float vec_b[], const int size) {
+    
+     RKMath_Cross(outvec, vec_a, vec_b) ;
+ }
+
  float RKMath_Sum(float vec[], const int size) {
     
     int i = 0 ;
@@ -40,7 +50,7 @@
 
  void RKMath_MultiVecProc(float outvec[], const float vec_a[],  const int a_size, const float vec_b[], const int b_size, RKMultiVecType MultiVecType) {
      
-     static RKMultiVecFunc MyFuncList[] = {RKMath_Add,RKMath_Sub,RKMath_Mul,RKMath_Div} ;
+     static RKMultiVecFunc MyFuncList[] = {RKMath_Add,RKMath_Sub,RKMath_Mul,RKMath_Div,RKMath_RKMultiDot,RKMath_RKMultiCross} ;
      
      int times = 0 ;
      
@@ -53,6 +63,8 @@
          times = b_size / a_size ;
          
          i = 0 ;
+         
+         j = 0 ;
          
          while ( i < times ) {
              
@@ -68,6 +80,8 @@
          times = a_size / b_size ;
          
          i = 0 ;
+         
+         j = 0 ;
          
          while ( i < times ) {
              

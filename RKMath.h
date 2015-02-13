@@ -58,7 +58,7 @@ vec_a[2] = vec_b[2]  \
 
  float RKMath_Sum(float vec[], const int size) ;
 
- void RKMath_MUltiVecProc(float outvec[], const float vec_a[],  const int a_size, const float vec_b[], const int b_size, RKMultiVecType MultiVecType) ;
+ void RKMath_MultiVecProc(float outvec[], const float vec_a[],  const int a_size, const float vec_b[], const int b_size, RKMultiVecType MultiVecType) ;
 
  void RKMath_Add(float outvec[], const float vec_a[], const float vec_b[], const int size) ;
 
