@@ -20,6 +20,7 @@
 #include <math.h>
 #include "RKMath.h"
 
+ typedef void (*RKMultiVecFunc)(float outvec[], const float vec_a[], const float vec_b[], const int size) ;
 
  float RKMath_Sum(float vec[], const int size) {
     
@@ -36,6 +37,50 @@
     
     return retval ;
  }
+
+ void RKMath_MUltiVecProc(float outvec[], const float vec_a[],  const int a_size, const float vec_b[], const int b_size, RKMultiVecType MultiVecType) {
+     
+     static RKMultiVecFunc MyFuncList[] = {RKMath_Add,RKMath_Sub,RKMath_Mul,RKMath_Div} ;
+     
+     int times = 0 ;
+     
+     int i = 0 ;
+     
+     int j = 0 ;
+     
+     if ( a_size < b_size ) {
+         
+         times = b_size / a_size ;
+         
+         i = 0 ;
+         
+         while ( i < times ) {
+             
+             MyFuncList[MultiVecType](outvec + j,vec_a,vec_b + j,a_size) ;
+             
+             i++ ;
+             
+             j += a_size ;
+         }
+
+     } else {
+         
+         times = a_size / b_size ;
+         
+         i = 0 ;
+         
+         while ( i < times ) {
+             
+             MyFuncList[MultiVecType](outvec + j,vec_a + j,vec_b,b_size) ;
+             
+             i++ ;
+             
+             j += b_size ;
+         }
+         
+     }
+    
+      }
 
  void RKMath_Add(float outvec[], const float vec_a[], const float vec_b[], const int size) {
     
