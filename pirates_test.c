@@ -49,36 +49,6 @@ static int RandomNumber( int randmin, int randmax ) {
 
 void pirates_teststuff(codename_scene scene, float MouseX, float MouseY) {
     
-    RKMath_NewVector(SmallVec, 3) ;
-    
-    SmallVec[RKM_X] = 1 ;
-    
-    SmallVec[RKM_Y] = 2 ;
-    
-    SmallVec[RKM_Z] = 3 ;
-    
-    RKMath_NewVector(BigVec, 15) ;
-    
-    int w = 0 ;
-    
-    while (w < 15) {
-        
-         BigVec[w] = w ;
-        
-         w++ ;
-    }
-    
-    RKMath_MultiVecProc(BigVec, SmallVec, 3, BigVec, 15, RKAdd) ;
-    
-    w = 0 ;
-    
-    while (w < 15) {
-        
-        printf("%f\n",BigVec[w]) ;
-        
-        w++ ;
-    }
-    
     RKMath_Vectorit(position, 0.1, 0.1 , -12.0) ;
     
     RKMath_Vectorit(focus, 0.0, 0.0, 0.0) ;

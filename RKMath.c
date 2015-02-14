@@ -18,19 +18,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <math.h>
+#include "RKMem.h"
 #include "RKMath.h"
-
- typedef void (*RKMultiVecFunc)(float outvec[], const float vec_a[], const float vec_b[], const int size) ;
-
- static void RKMath_RKMultiDot(float outvec[], const float vec_a[], const float vec_b[], const int size) {
-    
-     outvec[0] = RKMath_Dot(vec_a, vec_b, size) ;
- }
-
- static void RKMath_RKMultiCross(float outvec[], const float vec_a[], const float vec_b[], const int size) {
-    
-     RKMath_Cross(outvec, vec_a, vec_b) ;
- }
 
  float RKMath_Sum(float vec[], const int size) {
     
@@ -46,54 +35,6 @@
      }
     
     return retval ;
- }
-
- void RKMath_MultiVecProc(float outvec[], const float vec_a[],  const int a_size, const float vec_b[], const int b_size, RKMultiVecType MultiVecType) {
-     
-     static RKMultiVecFunc MyFuncList[] = {RKMath_Add,RKMath_Sub,RKMath_Mul,RKMath_Div,RKMath_RKMultiDot,RKMath_RKMultiCross} ;
-     
-     int times = 0 ;
-     
-     int i = 0 ;
-     
-     int j = 0 ;
-     
-     if ( a_size < b_size ) {
-         
-         times = b_size / a_size ;
-         
-         i = 0 ;
-         
-         j = 0 ;
-         
-         while ( i < times ) {
-             
-             MyFuncList[MultiVecType](outvec + j,vec_a,vec_b + j,a_size) ;
-             
-             i++ ;
-             
-             j += a_size ;
-         }
-
-     } else {
-         
-         times = a_size / b_size ;
-         
-         i = 0 ;
-         
-         j = 0 ;
-         
-         while ( i < times ) {
-             
-             MyFuncList[MultiVecType](outvec + j,vec_a + j,vec_b,b_size) ;
-             
-             i++ ;
-             
-             j += b_size ;
-         }
-         
-     }
-    
  }
 
  void RKMath_Add(float outvec[], const float vec_a[], const float vec_b[], const int size) {

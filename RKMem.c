@@ -105,14 +105,14 @@ void RKList_DeleteNode( RKList list, RKList_node node ) {
          list->last = NULL ;
      }
         
-     if ( node->before == NULL ) {
+     if ( ( node->before == NULL ) && ( node->after != NULL ) ) {
         
          list->first = node->after ;
         
          list->first->before = NULL ;
      }
     
-     if ( node->after == NULL ) {
+     if ( ( node->before != NULL ) && ( node->after == NULL ) ) {
         
          list->last = node->before ;
         
