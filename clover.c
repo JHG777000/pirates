@@ -34,6 +34,8 @@ pirates_ray_object_ref pirates_new_clover_ray_object(RKMVector origin , RKMVecto
     
     new_clover_ray_object->numspheres = 0 ;
     
+    new_clover_ray_object->run_state = 0 ;
+    
     RKTasks_StartLock(new_clover_ray_object->raylock) ;
     
     return new_clover_ray_object ;
@@ -49,4 +51,13 @@ void pirates_kill_clover_ray_object( pirates_ray_object_ref clover_ray_object ) 
     
     free( clover_ray_object ) ;
     
+}
+
+void pirates_submit_ray( clover_context clover, RKMVector origin , RKMVector direction, cn_point pixel, pirates_ray_eval_func ray_eval_func, pirates_ray_object_ref origin_ray, int depth ) {
+    
+    pirates_ray_object_ref newray = pirates_new_clover_ray_object(origin,direction,pixel,ray_eval_func,origin_ray,depth) ;
+    
+    if ( (*clover->list_for_rays) == NULL ) (*clover->list_for_rays) = RKList_NewList() ;
+    
+    RKList_AddToList((*clover->list_for_rays), (void*)newray) ;
 }

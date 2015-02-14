@@ -152,6 +152,18 @@ pirates_scene pirates_new_scene( piretes2d_scene scene, double draw_distance, RK
     return new_scene ;
 }
 
+void pirates_change_camera(pirates_scene scene, float x, float y, float z) {
+    
+    free(scene->Camera) ;
+    
+    RKMath_Vectorit(position, 0.1 + x, 0.1 + y, -12.0 + z) ;
+    
+    RKMath_Vectorit(focus, 0.0, 0.0, 0.0) ;
+    
+    scene->Camera = newcam(position, focus) ;
+    
+}
+
 void pirates_destroy_sphere_array( pirates_scene scene ) {
     
     int i = 0 ;

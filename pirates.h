@@ -39,6 +39,7 @@ Raycam newcam(RKMVector position, RKMVector focus) ;
 void freecam( Raycam cam ) ;
 Ray CastRay(struct pirates_scene_s* scene, Raycam raycam, float x, float y) ;
 
+
 typedef codename_scene piretes2d_scene ;
 
 typedef struct { raycolor color ; } pirates_Material_object ;
@@ -148,6 +149,8 @@ void pirates_destroy_scene( pirates_scene scene ) ;
 void pirates_proc_scene( pirates_scene scene ) ;
 
 void pirates_render(pirates_scene scene) ;
+
+void pirates_change_camera(pirates_scene scene, float x, float y, float z) ;
 
 void pirates_createbins(pirates_scene scene) ;
 

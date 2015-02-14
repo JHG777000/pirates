@@ -55,6 +55,8 @@ void pirates_teststuff(codename_scene scene, float MouseX, float MouseY) {
     
     pirates_scene scene3d = pirates_new_scene(scene, 1000000.0f, position, focus, 1024, 1024, 10, 35, 1) ;
     
+    pirates_change_camera(scene3d,0,MouseY/1024,MouseX/10240) ;
+    
     pirates_Material blue = pirates_newmaterial(Colorit(0.0, 1.0, 0.0)) ;
     
     pirates_Material red = pirates_newmaterial(Colorit(1.0, 0.0, 0.0)) ;

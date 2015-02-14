@@ -35,4 +35,16 @@ typedef struct RKList_object_s RKList_object ;
 
 typedef RKList_object* RKList ;
 
+RKList RKList_NewList( void ) ;
+
+void RKList_AddToList( RKList list, void* data ) ;
+
+void RKList_DeleteNode( RKList list, RKList_node node ) ;
+
+void RKList_DeleteList( RKList list ) ;
+
+RKList_node RKList_GetNode( RKList list, int index ) ;
+
+void RKList_DeleteNodeWithIndex( RKList list, int index ) ;
+
 #endif
