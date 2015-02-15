@@ -92,6 +92,26 @@ void RKList_AddToList( RKList list, void* data ) {
     list->num_of_nodes++ ;
 }
 
+RKList_node RKList_GetNextNode(RKList_node node) {
+    
+    return node->after ;
+}
+
+RKList_node RKList_GetPreviousNode(RKList_node node) {
+    
+    return node->before ;
+}
+
+RKList_node RKList_GetFirstNode(RKList list) {
+    
+    return list->first ;
+}
+
+RKList_node RKList_GetLastNode(RKList list) {
+    
+    return list->last ;
+}
+
 void RKList_DeleteNode( RKList list, RKList_node node ) {
     
     if ( node == NULL ) return ;
