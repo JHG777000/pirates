@@ -27,9 +27,11 @@ typedef RKList* raylist ;
 
 typedef RKList* grouplist ;
 
-typedef struct { raylist list_for_rays ; RKT_Lock ray_list_lock ; grouplist list_for_groups ; RKT_Lock group_list_lock ; int kill_this_task ; RKT_Lock kill_lock ;
+typedef struct { pirates_scene scene ; raylist list_for_rays ; RKT_Lock ray_list_lock ; grouplist list_for_groups ;
 
-int max_group_tasks ; int max_ray_tasks ; RKT_Lock clover_context_lock ; } clover_context_object ;
+RKT_Lock group_list_lock ; int kill_this_task ; RKT_Lock kill_lock ; int max_group_tasks ; int max_ray_tasks ;
+    
+RKT_Lock clover_context_lock ; } clover_context_object ;
 
 typedef clover_context_object* clover_context ;
 

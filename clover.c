@@ -61,3 +61,24 @@ void pirates_submit_ray( clover_context clover, RKMVector origin , RKMVector dir
     
     RKList_AddToList((*clover->list_for_rays), (void*)newray) ;
 }
+
+void pirates_make_groups( clover_context clover ) {
+    
+    pirates_scene scene = clover->scene ;
+    
+    int numspheres = scene->numspheres ;
+    
+    int i = 0 ;
+    
+    while ( numspheres > 0 ) {
+    
+    while ( i < clover->max_group_tasks ) {
+        
+        
+        i++ ;
+    }
+        
+        numspheres -= clover->max_group_tasks ;
+    }
+
+}
