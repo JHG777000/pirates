@@ -12,6 +12,66 @@
 #include <time.h>
 #include "clover.h"
 
+clover_context pirates_new_clover_context(pirates_scene scene, int max_group_tasks, int max_ray_tasks ) {
+    
+    clover_context clover = RKMem_NewMemOfType(clover_context_object) ;
+    
+    clover->max_group_tasks = max_group_tasks ;
+    
+    clover->max_ray_tasks = max_ray_tasks ;
+    
+    clover->list_for_groups = NULL ;
+    
+    clover->list_for_rays = NULL ;
+    
+    clover->kill_this_task = 0 ;
+    
+    RKTasks_StartLock(clover->clover_context_lock) ;
+    
+    RKTasks_StartLock(clover->group_list_lock) ;
+    
+    RKTasks_StartLock(clover->ray_list_lock) ;
+    
+    RKTasks_StartLock(clover->kill_lock) ;
+    
+    return clover ;
+    
+}
+
+RKTasks_CreateTask(clover_group_task, clover_context clover;,
+                   
+                   
+                   
+) ;
+
+void clover_make_tasks( clover_context clover ) {
+    
+    clover->clover_threads = RKTasks_NewThreadGroup(1, 10, 4, 1, 7) ;
+    
+    clover->clover_tasks = RKTasks_NewTaskGroup() ;
+    
+    RKTasks_BindTaskGroupToThreadGroup(clover->clover_tasks, clover->clover_threads) ;
+    
+    RKTasks_RunThreadGroup(clover->clover_threads) ;
+    
+    RKTasks_UseTaskGroup(clover->clover_tasks) ;
+    
+    RKTasks_Args(clover_group_task) ;
+    
+    int i = 0 ;
+    
+    while (i < clover->max_group_tasks) {
+        
+        RKTasks_UseArgs(clover_group_task) ;
+        
+        clover_group_task_Args->clover = clover ;
+        
+        RKTasks_AddTask(clover->clover_tasks, clover_group_task, clover_group_task_Args) ;
+        
+        i++ ;
+    }
+}
+
 pirates_ray_object_ref pirates_new_clover_ray_object(RKMVector origin , RKMVector direction, cn_point pixel, pirates_ray_eval_func ray_eval_func, pirates_ray_object_ref origin_ray, int depth) {
     
     pirates_ray_object_ref new_clover_ray_object = RKMem_NewMemOfType(clover_ray_object) ;

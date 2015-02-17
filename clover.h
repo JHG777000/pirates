@@ -31,8 +31,10 @@ typedef struct { pirates_scene scene ; raylist list_for_rays ; RKT_Lock ray_list
 
 RKT_Lock group_list_lock ; int kill_this_task ; RKT_Lock kill_lock ; int max_group_tasks ; int max_ray_tasks ;
     
-RKT_Lock clover_context_lock ; } clover_context_object ;
+RKT_Lock clover_context_lock ; RKTasks_ThreadGroup clover_threads ; RKTasks_TaskGroup clover_tasks ; } clover_context_object ;
 
 typedef clover_context_object* clover_context ;
+
+clover_context pirates_new_clover_context(pirates_scene scene, int max_group_tasks, int max_ray_tasks )  ;
 
 #endif /* defined(__pirates__clover__) */
