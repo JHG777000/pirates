@@ -104,16 +104,22 @@ void pirates_make_groups( clover_context clover ) {
     
     int i = 0 ;
     
+    int j = 0 ;
+    
     while ( numspheres > 0 ) {
     
-     i = 0 ;
+      i = 0 ;
         
-     while ( i < clover->max_group_tasks ) {
+      while ( i < clover->max_group_tasks ) {
         
-         pirates_make_group(clover,scene->sphere_array[i],i) ;
+          pirates_make_group(clover,scene->sphere_array[j],i) ;
          
-         i++ ;
-     }
+          i++ ;
+         
+          j++ ;
+         
+          if ( j >= numspheres ) break ;
+      }
         
        numspheres -= clover->max_group_tasks ;
     }
