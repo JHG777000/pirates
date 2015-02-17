@@ -39,6 +39,8 @@ RKList RKList_NewList( void ) ;
 
 void RKList_AddToList( RKList list, void* data ) ;
 
+void* RKList_GetData(RKList_node node) ;
+
 RKList_node RKList_GetNextNode(RKList_node node) ;
 
 RKList_node RKList_GetPreviousNode(RKList_node node) ;

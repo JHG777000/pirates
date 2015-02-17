@@ -62,6 +62,40 @@ void pirates_submit_ray( clover_context clover, RKMVector origin , RKMVector dir
     RKList_AddToList((*clover->list_for_rays), (void*)newray) ;
 }
 
+void pirates_add_sphere_to_group( pirates_sphere sphere, pirates_group group ) {
+    
+    pirates_add_sphere(&(group->sphere_array), &(group->numspheres), sphere) ;
+}
+
+pirates_group pirates_new_group( pirates_sphere sphere ) {
+    
+    pirates_group newgroup = RKMem_NewMemOfType(pirates_group_object) ;
+    
+    newgroup->sphere_array = NULL ;
+    
+    newgroup->numspheres = 0 ;
+    
+    pirates_add_sphere_to_group(sphere,newgroup) ;
+    
+    return newgroup ;
+}
+
+void pirates_make_group( clover_context clover, pirates_sphere sphere, int index) {
+    
+    if ( (*clover->list_for_groups) == NULL ) (*clover->list_for_groups) = RKList_NewList() ;
+    
+    RKList_node node = RKList_GetNode((*clover->list_for_groups), index) ;
+    
+    if ( node == NULL ) {
+        
+        RKList_AddToList((*clover->list_for_groups), (void*)pirates_new_group(sphere)) ;
+        
+    } else {
+
+        pirates_add_sphere_to_group(sphere, (pirates_group)RKList_GetData(node)) ;
+    }
+}
+
 void pirates_make_groups( clover_context clover ) {
     
     pirates_scene scene = clover->scene ;
@@ -72,13 +106,16 @@ void pirates_make_groups( clover_context clover ) {
     
     while ( numspheres > 0 ) {
     
-    while ( i < clover->max_group_tasks ) {
+     i = 0 ;
         
+     while ( i < clover->max_group_tasks ) {
         
-        i++ ;
-    }
+         pirates_make_group(clover,scene->sphere_array[i],i) ;
+         
+         i++ ;
+     }
         
-        numspheres -= clover->max_group_tasks ;
+       numspheres -= clover->max_group_tasks ;
     }
 
 }

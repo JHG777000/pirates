@@ -705,8 +705,6 @@ pirates_sphere pirates_compute_bounding_sphere( pirates_triangle triangle, pirat
     
 }
 
-void pirates_add_sphere( pirates_spheres* sphere_array, int* numspheres, pirates_sphere sphere ) ;
-
 void pirates_add_sphere_to_cell( int x, int y, int z, pirates_grid_cell*** cell_array, pirates_sphere sphere ) {
     
     pirates_add_sphere(&(cell_array[x][y][z].sphere_array),&(cell_array[x][y][z].numspheres),sphere) ;

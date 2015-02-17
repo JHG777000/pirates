@@ -92,6 +92,11 @@ void RKList_AddToList( RKList list, void* data ) {
     list->num_of_nodes++ ;
 }
 
+void* RKList_GetData(RKList_node node) {
+    
+    return node->data ;
+}
+
 RKList_node RKList_GetNextNode(RKList_node node) {
     
     return node->after ;
