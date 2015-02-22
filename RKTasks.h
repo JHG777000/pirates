@@ -183,6 +183,24 @@ void RKTasks_StopThreadGroup( RKTasks_ThreadGroup ThreadGroup ) ;
 void RKTasks_UseTaskGroup( RKTasks_TaskGroup TaskGroup ) ;
 
 /*
+ RKTasks_GetNumOfThreads
+ 
+ Returns the total number of threads that have been created.
+ 
+ */
+
+int RKTasks_GetNumOfThreads( RKTasks_ThreadGroup ThreadGroup) ;
+
+/*
+ RKTasks_GetNumOfTasks
+ 
+ Returns the current number of tasks.
+ 
+ */
+
+int RKTasks_GetNumOfTasks( RKTasks_TaskGroup TaskGroup) ;
+
+/*
  RKTasks_AllTasksDone
  
  Returns 1, if all tasks of the given TaskGroup are done, if not

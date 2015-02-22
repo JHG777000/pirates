@@ -60,7 +60,9 @@ void clover_make_tasks( clover_context clover ) {
     
     int i = 0 ;
     
-    while (i < clover->max_group_tasks) {
+    int numtasks = MIN_JHG(clover->max_group_tasks, clover->scene->numspheres) ;
+    
+    while (i < numtasks) {
         
         RKTasks_UseArgs(clover_group_task) ;
         
@@ -70,6 +72,70 @@ void clover_make_tasks( clover_context clover ) {
         
         i++ ;
     }
+    
+    RKTasks_WaitForTasksToBeDone(clover->clover_tasks) ;
+}
+
+void clover_restart_tasks( clover_context clover ) {
+    
+    if ( clover->scene->numspheres > RKTasks_GetNumOfTasks(clover->clover_tasks) ) clover_add_more_tasks(clover) ;
+    
+    RKTasks_UseTaskGroup(clover->clover_tasks) ;
+    
+    RKTasks_WaitForTasksToBeDone(clover->clover_tasks) ;
+}
+
+void clover_end_tasks( clover_context clover ) {
+    
+    RKTasks_WaitForTasksToBeDone(clover->clover_tasks) ;
+    
+    RKTasks_KillThreadGroup(clover->clover_threads) ;
+    
+    RKTasks_KillTaskGroup(clover->clover_tasks) ;
+
+}
+
+void clover_end_lists( clover_context clover ) {
+    
+    RKTasks_LockLock(clover->ray_list_lock) ;
+    
+    RKList_DeleteList(*(clover->list_for_rays)) ;
+    
+    RKTasks_UnLockLock(clover->ray_list_lock) ;
+    
+    RKTasks_LockLock(clover->group_list_lock) ;
+    
+    RKList_node node = RKList_GetFirstNode(*(clover->list_for_groups)) ;
+    
+    pirates_group group = NULL ;
+    
+    while ( node != NULL ) {
+        
+        group = (pirates_group)RKList_GetData(node) ;
+        
+        free(group->sphere_array) ;
+        
+        free(group) ;
+        
+        node = RKList_GetNextNode(node) ;
+    }
+    
+    RKTasks_UnLockLock(clover->group_list_lock) ;
+}
+
+void clover_end_context( clover_context clover ) {
+    
+    clover_end_tasks(clover) ;
+    
+    clover_end_lists(clover) ;
+    
+    RKTasks_EndLock(clover->kill_lock) ;
+    
+    RKTasks_EndLock(clover->clover_context_lock) ;
+    
+    RKTasks_EndLock(clover->group_list_lock) ;
+    
+    RKTasks_EndLock(clover->ray_list_lock) ;
 }
 
 pirates_ray_object_ref pirates_new_clover_ray_object(RKMVector origin , RKMVector direction, cn_point pixel, pirates_ray_eval_func ray_eval_func, pirates_ray_object_ref origin_ray, int depth) {
@@ -166,6 +232,8 @@ void pirates_make_groups( clover_context clover ) {
     
     int j = 0 ;
     
+    if ( numspheres <= clover->max_group_tasks ) {
+    
     while ( numspheres > 0 ) {
     
       i = 0 ;
@@ -184,4 +252,26 @@ void pirates_make_groups( clover_context clover ) {
        numspheres -= clover->max_group_tasks ;
     }
 
+        
+    } else {
+        
+        while ( numspheres > 0 ) {
+            
+            i = 0 ;
+            
+            while ( i < clover->max_group_tasks ) {
+                
+                pirates_make_group(clover,scene->sphere_array[i],j) ;
+                
+                i++ ;
+            }
+            
+            j++ ;
+            
+            if ( j >= clover->max_group_tasks ) j = 0 ;
+            
+            numspheres -= clover->max_group_tasks ;
+        }
+        
+    }
 }

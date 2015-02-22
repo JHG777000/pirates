@@ -441,6 +441,33 @@ void RKTasks_UseTaskGroup( RKTasks_TaskGroup TaskGroup ) {
     RKTasks_UnLockLock(TaskGroup->task_group_lock) ;
 }
 
+int RKTasks_GetNumOfThreads( RKTasks_ThreadGroup ThreadGroup) {
+    
+    int num_of_threads = 0 ;
+    
+    RKTasks_LockLock(ThreadGroup->thread_group_lock) ;
+    
+    num_of_threads = ThreadGroup->NumOfThreads ;
+    
+    RKTasks_UnLockLock(ThreadGroup->thread_group_lock) ;
+    
+    return num_of_threads ;
+
+}
+
+int RKTasks_GetNumOfTasks( RKTasks_TaskGroup TaskGroup) {
+    
+    int num_of_tasks = 0 ;
+    
+    RKTasks_LockLock(TaskGroup->task_group_lock) ;
+    
+    num_of_tasks = TaskGroup->NumOfTasks ;
+    
+    RKTasks_UnLockLock(TaskGroup->task_group_lock) ;
+    
+    return num_of_tasks ;
+    
+}
 
 int RKTasks_AllTasksDone( RKTasks_TaskGroup TaskGroup ) {
     
