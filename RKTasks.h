@@ -53,7 +53,7 @@ int RKTasks_OpenLock( RKT_Lock* lock ) ;
 
 #define RKTasks_CreateTask(TaskName, Args, FuncSpace) typedef struct {Args} TaskName ## _argstruct ; \
 typedef TaskName ## _argstruct* TaskName ## _argstruct_ptr ;\
-void TaskName( void *argument ) { \
+static void TaskName( void *argument ) { \
 TaskName ## _argstruct_ptr RKTArgs = (TaskName ## _argstruct_ptr) argument ; \
 \
 FuncSpace \

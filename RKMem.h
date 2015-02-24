@@ -49,6 +49,8 @@ RKList_node RKList_GetFirstNode(RKList list) ;
 
 RKList_node RKList_GetLastNode(RKList list) ;
 
+int RKList_GetNumOfNodes(RKList list) ;
+
 void RKList_DeleteNode( RKList list, RKList_node node ) ;
 
 void RKList_DeleteList( RKList list ) ;

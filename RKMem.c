@@ -117,6 +117,11 @@ RKList_node RKList_GetLastNode(RKList list) {
     return list->last ;
 }
 
+int RKList_GetNumOfNodes(RKList list) {
+    
+    return list->num_of_nodes ;
+}
+
 void RKList_DeleteNode( RKList list, RKList_node node ) {
     
     if ( node == NULL ) return ;

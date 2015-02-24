@@ -18,11 +18,13 @@
 #include "RKMem.h"
 #include "RKTasks.h"
 
-struct RKTasks_Task_s { RKT_Lock task_lock ; void (*TaskFunc)(void *) ; void *TaskArgs ; int task_run_id ; struct RKTasks_Task_s* last ;
-    
-struct RKTasks_Task_s* before ; struct RKTasks_Task_s* after ; } ;
+typedef RKList RKTasks_TaskList ;
 
-struct RKTasks_TaskGroup_s { RKT_Lock task_group_lock ; RKTasks_Task TaskList ; int NumOfDoneTasks ; int NumOfTasks ; int init ;
+typedef RKList_node RKTasks_Tasklet ;
+
+struct RKTasks_Task_s { RKT_Lock task_lock ; void (*TaskFunc)(void *) ; void *TaskArgs ; int task_run_id ; } ;
+
+struct RKTasks_TaskGroup_s { RKT_Lock task_group_lock ; RKTasks_TaskList TaskList ; int NumOfDoneTasks ; int NumOfTasks ; int init ;
     
 int group_run_id ; } ;
 
@@ -157,7 +159,7 @@ RKTasks_TaskGroup RKTasks_NewTaskGroup( void ) {
     
     RKTasks_TaskGroup NewGroup = RKMem_NewMemOfType(RKTasks_TaskGroup_object) ;
     
-    NewGroup->TaskList = NULL ;
+    NewGroup->TaskList = RKList_NewList() ;
     
     NewGroup->NumOfTasks = 0 ;
     
@@ -175,22 +177,24 @@ RKTasks_TaskGroup RKTasks_NewTaskGroup( void ) {
 
 void RKTasks_KillTaskGroup( RKTasks_TaskGroup TaskGroup ) {
     
-    RKTasks_Task Task = TaskGroup->TaskList ;
-   
-    RKTasks_Task OldTask ;
+    RKTasks_Task Task = NULL ;
     
-    while ( Task != NULL ) {
+    RKTasks_Tasklet Tasklet = RKList_GetFirstNode(TaskGroup->TaskList) ;
+    
+    while ( Tasklet != NULL ) {
         
-        OldTask = Task ;
+        Task = (RKTasks_Task)RKList_GetData(Tasklet) ;
         
-        Task = Task->after ;
+        RKTasks_EndLock(Task->task_lock) ;
         
-        RKTasks_EndLock(OldTask->task_lock) ;
+        free(Task->TaskArgs) ;
         
-        free(OldTask->TaskArgs) ;
+        free(Task) ;
         
-        free(OldTask) ;
+        Tasklet = RKList_GetNextNode(Tasklet) ;
     }
+    
+    RKList_DeleteList(TaskGroup->TaskList) ;
     
     TaskGroup->TaskList = NULL ;
     
@@ -262,6 +266,8 @@ static void *RKTasks_WorkerThread( void *argument ) {
     
     RKTasks_Task Task = NULL ;
     
+    RKTasks_Tasklet Tasklet = NULL ;
+    
     int tid = ThreadArgs->tid ;
     
     int thread_run_state = 0 ;
@@ -307,11 +313,13 @@ static void *RKTasks_WorkerThread( void *argument ) {
             
                 RKTasks_LockLock(TaskGroup->task_group_lock) ;
             
-                if ( Task == NULL ) Task = TaskGroup->TaskList ;
+                if ( Tasklet == NULL ) Tasklet = RKList_GetFirstNode(TaskGroup->TaskList) ;
                 
                 while (not_found) {
                     
-                    if ( Task != NULL ) {
+                    if ( Tasklet != NULL ) {
+                        
+                        Task = (RKTasks_Task)RKList_GetData(Tasklet) ;
                         
                         if ( Task->task_run_id == thread_run_state ) {
                             
@@ -323,7 +331,7 @@ static void *RKTasks_WorkerThread( void *argument ) {
                             
                         } else {
                             
-                            Task = Task->after ;
+                            Tasklet = RKList_GetNextNode(Tasklet) ;
                         }
                         
                     } else {
@@ -551,40 +559,21 @@ int RKTasks_KillThreadWithTid( RKTasks_ThreadGroup ThreadGroup, int tid ) {
 
 void RKTasks_AddTask_Func(RKTasks_TaskGroup TaskGroup, void (*TaskFunc)(void *), void *TaskArgs ) {
     
+    RKTasks_Task Task = RKMem_NewMemOfType(RKTasks_Task_object) ;
+    
     RKTasks_LockLock(TaskGroup->task_group_lock) ;
     
-    if ( TaskGroup->TaskList == NULL ) {
-        
-        TaskGroup->TaskList = RKMem_NewMemOfType(RKTasks_Task_object) ;
-        
-        TaskGroup->TaskList->before = NULL ;
-        
-        TaskGroup->TaskList->after = NULL ;
-        
-        TaskGroup->TaskList->last = TaskGroup->TaskList ;
-        
-    } else {
-        
-        TaskGroup->TaskList->last->after = RKMem_NewMemOfType(RKTasks_Task_object) ;
-        
-        TaskGroup->TaskList->last->after->before = TaskGroup->TaskList->last ;
-        
-        TaskGroup->TaskList->last->after->after = NULL ;
-        
-        TaskGroup->TaskList->last->after->last = NULL ;
-        
-        TaskGroup->TaskList->last = TaskGroup->TaskList->last->after ;
-    }
+    Task->TaskFunc = TaskFunc ;
     
-    TaskGroup->TaskList->last->TaskFunc = TaskFunc ;
+    Task->TaskArgs = TaskArgs ;
     
-    TaskGroup->TaskList->last->TaskArgs = TaskArgs ;
+    Task->task_run_id = TaskGroup->group_run_id ;
     
-    TaskGroup->TaskList->last->task_run_id = TaskGroup->group_run_id ;
+    RKTasks_StartLock(Task->task_lock) ;
     
-    TaskGroup->NumOfTasks++ ;
+    RKList_AddToList(TaskGroup->TaskList, (void*)Task) ;
     
-    RKTasks_StartLock(TaskGroup->TaskList->last->task_lock) ;
+    TaskGroup->NumOfTasks = RKList_GetNumOfNodes(TaskGroup->TaskList) ;
     
     RKTasks_UnLockLock(TaskGroup->task_group_lock) ;
     

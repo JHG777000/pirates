@@ -37,4 +37,10 @@ typedef clover_context_object* clover_context ;
 
 clover_context pirates_new_clover_context(pirates_scene scene, int max_group_tasks, int max_ray_tasks )  ;
 
+void pirates_submit_ray( clover_context clover, RKMVector origin , RKMVector direction, cn_point pixel, pirates_ray_eval_func ray_eval_func, pirates_ray_object_ref origin_ray, int depth ) ;
+
+void pirates_compute_group_bounding_box( pirates_group group, pirates_bounding_box bounding_box ) ;
+
+void pirates_make_groups( clover_context clover ) ;
+
 #endif /* defined(__pirates__clover__) */

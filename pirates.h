@@ -152,6 +152,8 @@ void pirates_render(pirates_scene scene) ;
 
 void pirates_add_sphere( pirates_spheres* sphere_array, int* numspheres, pirates_sphere sphere ) ;
 
+pirates_bounding_box pirates_compute_bounding_box( pirates_triangle triangle ) ;
+
 void pirates_change_camera(pirates_scene scene, float x, float y, float z) ;
 
 void pirates_createbins(pirates_scene scene) ;
