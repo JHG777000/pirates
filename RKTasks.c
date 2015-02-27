@@ -22,7 +22,9 @@ typedef RKList RKTasks_TaskList ;
 
 typedef RKList_node RKTasks_Tasklet ;
 
-struct RKTasks_Task_s { RKT_Lock task_lock ; void (*TaskFunc)(void *) ; void *TaskArgs ; int task_run_id ; } ;
+struct RKTasks_Task_s { RKT_Lock task_lock ; void (*TaskFunc)(void *) ; void *TaskArgs ;
+    
+RKTasks_Tasklet list_node ; int task_run_id ; } ;
 
 struct RKTasks_TaskGroup_s { RKT_Lock task_group_lock ; RKTasks_TaskList TaskList ; int NumOfDoneTasks ; int NumOfTasks ; int init ;
     
@@ -571,7 +573,7 @@ void RKTasks_AddTask_Func(RKTasks_TaskGroup TaskGroup, void (*TaskFunc)(void *),
     
     RKTasks_StartLock(Task->task_lock) ;
     
-    RKList_AddToList(TaskGroup->TaskList, (void*)Task) ;
+    Task->list_node = RKList_AddToList(TaskGroup->TaskList, (void*)Task) ;
     
     TaskGroup->NumOfTasks = RKList_GetNumOfNodes(TaskGroup->TaskList) ;
     

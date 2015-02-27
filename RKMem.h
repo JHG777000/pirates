@@ -37,7 +37,7 @@ typedef RKList_object* RKList ;
 
 RKList RKList_NewList( void ) ;
 
-void RKList_AddToList( RKList list, void* data ) ;
+RKList_node RKList_AddToList( RKList list, void* data ) ;
 
 void* RKList_GetData(RKList_node node) ;
 

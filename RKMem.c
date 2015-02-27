@@ -64,7 +64,7 @@ RKList RKList_NewList( void ) {
 
 }
 
-void RKList_AddToList( RKList list, void* data ) {
+RKList_node RKList_AddToList( RKList list, void* data ) {
     
     if ( list->num_of_nodes == 0 ) {
         
@@ -90,6 +90,8 @@ void RKList_AddToList( RKList list, void* data ) {
     list->last->data = data ;
     
     list->num_of_nodes++ ;
+    
+    return list->last ;
 }
 
 void* RKList_GetData(RKList_node node) {
