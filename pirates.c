@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "clover.h"
 #include "pirates.h"
 
 static int framcount = 0 ;

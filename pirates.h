@@ -158,6 +158,12 @@ void pirates_change_camera(pirates_scene scene, float x, float y, float z) ;
 
 void pirates_createbins(pirates_scene scene) ;
 
+float box_intersection( Ray r, pirates_bin box ) ;
+
+float Sphere_intersection(Ray ray, pirates_sphere sphere) ;
+
+double Trig_intersection(Ray ray, RKMVector vert1, RKMVector vert2, RKMVector vert3) ;
+
 pirates_scene_bin pirates_create_scene_bin(pirates_scene scene, int sort_min, int sort_max, int level_max) ;
 
 #endif /* defined(__pirates__pirates__) */
