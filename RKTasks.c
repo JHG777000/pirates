@@ -24,7 +24,7 @@ typedef RKList_node RKTasks_Tasklet ;
 
 struct RKTasks_ThisTask_s { RKT_Lock this_task_lock ; int kill ; } ;
 
-struct RKTasks_Task_s { RKT_Lock task_lock ; RKTasks_ThisTask ThisTask ; int alive ;
+struct RKTasks_Task_s { RKT_Lock task_lock ; RKTasks_ThisTask ThisTask ; int active ;
     
 void (*TaskFunc)(void *, struct RKTasks_ThisTask_s *) ; void *TaskArgs ; RKTasks_Tasklet list_node ; int task_run_id ; } ;
 
@@ -34,7 +34,7 @@ int group_run_id ; } ;
 
 struct RKTasks_ThreadGroup_s { RKT_Lock thread_group_lock ; RKThreads ThreadArray ; int MaxNumOfThreads ; int NumOfDeadThreads ;
     
-int NumOfThreads ; RKTasks_TaskGroup Current_TaskGroup ; int alive ; int GoToWork ; } ;
+int NumOfThreads ; RKTasks_TaskGroup Current_TaskGroup ; int alive ; int GoToWork ; int update ; } ;
 
 typedef struct { RKTasks_ThreadGroup ThreadGroup ; int tid ; } RKTasks_Thread_Args_object ;
 
@@ -58,23 +58,6 @@ int RKTasks_CloseLock( RKT_Lock* lock ) {
 int RKTasks_OpenLock( RKT_Lock* lock ) {
     
     return pthread_mutex_unlock(lock) ;
-}
-
-static void RKTasks_DestroyTask( RKTasks_TaskGroup TaskGroup, RKTasks_Task Task ) {
-    
-    RKList_DeleteNode(TaskGroup->TaskList, Task->list_node) ;
-    
-    RKTasks_EndLock(Task->ThisTask->this_task_lock) ;
-    
-    free(Task->ThisTask) ;
-    
-    RKTasks_EndLock(Task->task_lock) ;
-    
-    free(Task->TaskArgs) ;
-    
-    free(Task) ;
-    
-    TaskGroup->NumOfTasks = RKList_GetNumOfNodes(TaskGroup->TaskList) ;
 }
 
 int RKTasks_GetNumberOfThreadsForPlatform( int min_num_of_threads, int max_num_of_threads, int userSetNumOfCores, int dynamic0No1Yes, int mode ) {
@@ -299,12 +282,10 @@ static void *RKTasks_WorkerThread( void *argument ) {
     
     int awake = 0 ;
     
-    int taskdead = 0 ;
-    
     while (alive) {
         
-        if ( ThreadGroup != NULL ) {
-            
+        if ( ThreadGroup == NULL ) break ;
+        
             RKTasks_LockLock(ThreadGroup->thread_group_lock) ;
             
             if ( (!(ThreadGroup->alive)) || (!(ThreadGroup->ThreadArray[tid].alive))) alive = 0 ;
@@ -330,49 +311,22 @@ static void *RKTasks_WorkerThread( void *argument ) {
             }
             
             RKTasks_UnLockLock(ThreadGroup->thread_group_lock) ;
-        }
+            
+            if (!alive) break ;
         
         while (awake) {
             
                 RKTasks_LockLock(TaskGroup->task_group_lock) ;
             
-                Tasklet = RKList_GetFirstNode(TaskGroup->TaskList) ;
+                if (Tasklet == NULL) Tasklet = RKList_GetFirstNode(TaskGroup->TaskList) ;
                 
                 while (not_found) {
-                nullcheck:
+                
                     if ( Tasklet != NULL ) {
                         
-                        while (1) {
-                        
-                        taskdead = 0 ;
-                            
                         Task = (RKTasks_Task)RKList_GetData(Tasklet) ;
                         
-                        RKTasks_LockLock(Task->task_lock) ;
-                        
-                        if ( Task->alive == -1 ) {
-                            
-                            RKTasks_UnLockLock(Task->task_lock) ;
-                            
-                            Tasklet = RKList_GetNextNode(Tasklet) ;
-                            
-                            if (Tasklet == NULL) goto nullcheck ;
-                            
-                            RKTasks_DestroyTask(TaskGroup, Task) ;
-                            
-                            taskdead++ ;
-                        }
-                        
-                        if ( !taskdead ) {
-                            
-                            RKTasks_UnLockLock(Task->task_lock) ;
-                            
-                            break ;
-                        }
-                            
-                        }
-                        
-                        if ( (Task->task_run_id == thread_run_state) && (Task->alive == 1) ) {
+                        if ( (Task->task_run_id == thread_run_state) && (Task->active == 1) ) {
                             
                             Task->task_run_id = !(Task->task_run_id) ;
                             
@@ -399,19 +353,17 @@ static void *RKTasks_WorkerThread( void *argument ) {
                 
                 RKTasks_LockLock(Task->task_lock) ;
                 
-                if ( Task->alive == 1 ) {
+                if ( Task->active ) {
                 
                 Task->TaskFunc(Task->TaskArgs,Task->ThisTask) ;
                     
                 RKTasks_LockLock(Task->ThisTask->this_task_lock) ;
                 
-                if (Task->ThisTask->kill) Task->alive = 0 ;
+                if (Task->ThisTask->kill) Task->active = 0 ;
                     
                 RKTasks_UnLockLock(Task->ThisTask->this_task_lock) ;
                     
                 }
-                
-                if (Task->alive == 0) Task->alive = -1 ;
                 
                 RKTasks_UnLockLock(Task->task_lock) ;
 
@@ -640,7 +592,7 @@ RKTasks_ThisTask RKTasks_AddTask_Func(RKTasks_TaskGroup TaskGroup, void (*TaskFu
     
     RKTasks_Task Task = RKMem_NewMemOfType(RKTasks_Task_object) ;
     
-    Task->alive = 1 ;
+    Task->active = 1 ;
     
     Task->ThisTask = ThisTask ;
     

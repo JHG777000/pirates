@@ -259,13 +259,15 @@ int RKTasks_KillThreadWithTid( RKTasks_ThreadGroup ThreadGroup, int tid ) ;
 
 
 /*
- RKTasks_DeleteTask
+ RKTasks_DeactivateTask
  
- Delete given Task, via its ThisTask object.
+ Deactivate given Task, via its ThisTask object.
+ 
+ Task while unactive, will still be in memory and hold resources.
  
  */
 
-void RKTasks_DeleteTask( RKTasks_ThisTask ThisTask ) ;
+void RKTasks_DeactivateTask( RKTasks_ThisTask ThisTask ) ;
 
 /*
  RKTasks_AddTask_Func
