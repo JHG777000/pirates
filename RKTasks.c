@@ -373,6 +373,8 @@ static void *RKTasks_WorkerThread( void *argument ) {
         }
     }
     
+    if ( ThreadGroup != NULL ) {
+    
     RKTasks_LockLock(ThreadGroup->thread_group_lock) ;
     
     ThreadGroup->NumOfDeadThreads++ ;
@@ -380,6 +382,8 @@ static void *RKTasks_WorkerThread( void *argument ) {
     ThreadGroup->ThreadArray[tid].alive = -1 ;
     
     RKTasks_UnLockLock(ThreadGroup->thread_group_lock) ;
+    
+    }
     
     free(ThreadArgs) ;
     
