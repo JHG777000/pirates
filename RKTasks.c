@@ -326,7 +326,7 @@ static void *RKTasks_WorkerThread( void *argument ) {
                         
                         Task = (RKTasks_Task)RKList_GetData(Tasklet) ;
                         
-                        if ( (Task->task_run_id == thread_run_state) && (Task->active == 1) ) {
+                        if ( Task->task_run_id == thread_run_state ) {
                             
                             Task->task_run_id = !(Task->task_run_id) ;
                             
@@ -573,7 +573,7 @@ int RKTasks_KillThreadWithTid( RKTasks_ThreadGroup ThreadGroup, int tid ) {
     return 0 ;
 }
 
-void RKTasks_DeleteTask( RKTasks_ThisTask ThisTask ) {
+void RKTasks_DeactivateTask( RKTasks_ThisTask ThisTask ) {
     
     RKTasks_LockLock(ThisTask->this_task_lock) ;
     
