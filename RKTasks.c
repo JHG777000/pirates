@@ -22,9 +22,11 @@ typedef RKList RKTasks_TaskList ;
 
 typedef RKList_node RKTasks_Tasklet ;
 
-struct RKTasks_Task_s { RKT_Lock task_lock ; void (*TaskFunc)(void *) ; void *TaskArgs ;
+struct RKTasks_ThisTask_s { RKT_Lock this_task_lock ; int kill ; } ;
+
+struct RKTasks_Task_s { RKT_Lock task_lock ; RKTasks_ThisTask ThisTask ; int alive ;
     
-RKTasks_Tasklet list_node ; int task_run_id ; } ;
+void (*TaskFunc)(void *, struct RKTasks_ThisTask_s *) ; void *TaskArgs ; RKTasks_Tasklet list_node ; int task_run_id ; } ;
 
 struct RKTasks_TaskGroup_s { RKT_Lock task_group_lock ; RKTasks_TaskList TaskList ; int NumOfDoneTasks ; int NumOfTasks ; int init ;
     
@@ -56,6 +58,23 @@ int RKTasks_CloseLock( RKT_Lock* lock ) {
 int RKTasks_OpenLock( RKT_Lock* lock ) {
     
     return pthread_mutex_unlock(lock) ;
+}
+
+static void RKTasks_DestroyTask( RKTasks_TaskGroup TaskGroup, RKTasks_Task Task ) {
+    
+    RKList_DeleteNode(TaskGroup->TaskList, Task->list_node) ;
+    
+    RKTasks_EndLock(Task->ThisTask->this_task_lock) ;
+    
+    free(Task->ThisTask) ;
+    
+    RKTasks_EndLock(Task->task_lock) ;
+    
+    free(Task->TaskArgs) ;
+    
+    free(Task) ;
+    
+    TaskGroup->NumOfTasks = RKList_GetNumOfNodes(TaskGroup->TaskList) ;
 }
 
 int RKTasks_GetNumberOfThreadsForPlatform( int min_num_of_threads, int max_num_of_threads, int userSetNumOfCores, int dynamic0No1Yes, int mode ) {
@@ -280,6 +299,8 @@ static void *RKTasks_WorkerThread( void *argument ) {
     
     int awake = 0 ;
     
+    int taskdead = 0 ;
+    
     while (alive) {
         
         if ( ThreadGroup != NULL ) {
@@ -315,15 +336,43 @@ static void *RKTasks_WorkerThread( void *argument ) {
             
                 RKTasks_LockLock(TaskGroup->task_group_lock) ;
             
-                if ( Tasklet == NULL ) Tasklet = RKList_GetFirstNode(TaskGroup->TaskList) ;
+                Tasklet = RKList_GetFirstNode(TaskGroup->TaskList) ;
                 
                 while (not_found) {
-                    
+                nullcheck:
                     if ( Tasklet != NULL ) {
                         
+                        while (1) {
+                        
+                        taskdead = 0 ;
+                            
                         Task = (RKTasks_Task)RKList_GetData(Tasklet) ;
                         
-                        if ( Task->task_run_id == thread_run_state ) {
+                        RKTasks_LockLock(Task->task_lock) ;
+                        
+                        if ( Task->alive == -1 ) {
+                            
+                            RKTasks_UnLockLock(Task->task_lock) ;
+                            
+                            Tasklet = RKList_GetNextNode(Tasklet) ;
+                            
+                            if (Tasklet == NULL) goto nullcheck ;
+                            
+                            RKTasks_DestroyTask(TaskGroup, Task) ;
+                            
+                            taskdead++ ;
+                        }
+                        
+                        if ( !taskdead ) {
+                            
+                            RKTasks_UnLockLock(Task->task_lock) ;
+                            
+                            break ;
+                        }
+                            
+                        }
+                        
+                        if ( (Task->task_run_id == thread_run_state) && (Task->alive == 1) ) {
                             
                             Task->task_run_id = !(Task->task_run_id) ;
                             
@@ -350,9 +399,22 @@ static void *RKTasks_WorkerThread( void *argument ) {
                 
                 RKTasks_LockLock(Task->task_lock) ;
                 
-                Task->TaskFunc(Task->TaskArgs) ;
+                if ( Task->alive == 1 ) {
+                
+                Task->TaskFunc(Task->TaskArgs,Task->ThisTask) ;
                     
+                RKTasks_LockLock(Task->ThisTask->this_task_lock) ;
+                
+                if (Task->ThisTask->kill) Task->alive = 0 ;
+                    
+                RKTasks_UnLockLock(Task->ThisTask->this_task_lock) ;
+                    
+                }
+                
+                if (Task->alive == 0) Task->alive = -1 ;
+                
                 RKTasks_UnLockLock(Task->task_lock) ;
+
             }
             
             not_found = 1 ;
@@ -493,7 +555,7 @@ int RKTasks_AllTasksDone( RKTasks_TaskGroup TaskGroup ) {
     
      RKTasks_UnLockLock(TaskGroup->task_group_lock) ;
     
-    if ( num_of_tasks == done ) return 1 ;
+    if ( num_of_tasks <= done ) return 1 ;
     
     return 0 ;
 }
@@ -559,11 +621,28 @@ int RKTasks_KillThreadWithTid( RKTasks_ThreadGroup ThreadGroup, int tid ) {
     return 0 ;
 }
 
-void RKTasks_AddTask_Func(RKTasks_TaskGroup TaskGroup, void (*TaskFunc)(void *), void *TaskArgs ) {
+void RKTasks_DeleteTask( RKTasks_ThisTask ThisTask ) {
+    
+    RKTasks_LockLock(ThisTask->this_task_lock) ;
+    
+    ThisTask->kill = 1 ;
+    
+    RKTasks_UnLockLock(ThisTask->this_task_lock) ;
+}
+
+RKTasks_ThisTask RKTasks_AddTask_Func(RKTasks_TaskGroup TaskGroup, void (*TaskFunc)(void *, struct RKTasks_ThisTask_s *), void *TaskArgs ) {
+    
+    RKTasks_ThisTask ThisTask = RKMem_NewMemOfType(RKTasks_ThisTask_object) ;
+    
+    ThisTask->kill = 0 ;
+    
+    RKTasks_StartLock(ThisTask->this_task_lock) ;
     
     RKTasks_Task Task = RKMem_NewMemOfType(RKTasks_Task_object) ;
     
-    RKTasks_LockLock(TaskGroup->task_group_lock) ;
+    Task->alive = 1 ;
+    
+    Task->ThisTask = ThisTask ;
     
     Task->TaskFunc = TaskFunc ;
     
@@ -573,10 +652,14 @@ void RKTasks_AddTask_Func(RKTasks_TaskGroup TaskGroup, void (*TaskFunc)(void *),
     
     RKTasks_StartLock(Task->task_lock) ;
     
+    RKTasks_LockLock(TaskGroup->task_group_lock) ;
+    
     Task->list_node = RKList_AddToList(TaskGroup->TaskList, (void*)Task) ;
     
     TaskGroup->NumOfTasks = RKList_GetNumOfNodes(TaskGroup->TaskList) ;
     
     RKTasks_UnLockLock(TaskGroup->task_group_lock) ;
+    
+    return Task->ThisTask ;
     
 }

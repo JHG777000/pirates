@@ -27,6 +27,10 @@ typedef struct RKTasks_Task_s RKTasks_Task_object ;
 
 typedef RKTasks_Task_object* RKTasks_Task ;
 
+typedef struct RKTasks_ThisTask_s RKTasks_ThisTask_object ;
+
+typedef RKTasks_ThisTask_object* RKTasks_ThisTask ;
+
 typedef struct RKTasks_TaskGroup_s RKTasks_TaskGroup_object ;
 
 typedef RKTasks_TaskGroup_object* RKTasks_TaskGroup ;
@@ -53,7 +57,7 @@ int RKTasks_OpenLock( RKT_Lock* lock ) ;
 
 #define RKTasks_CreateTask(TaskName, Args, FuncSpace) typedef struct {Args} TaskName ## _argstruct ; \
 typedef TaskName ## _argstruct* TaskName ## _argstruct_ptr ;\
-static void TaskName( void *argument ) { \
+static void TaskName( void *argument, RKTasks_ThisTask ThisTask ) { \
 TaskName ## _argstruct_ptr RKTArgs = (TaskName ## _argstruct_ptr) argument ; \
 \
 FuncSpace \
@@ -253,6 +257,16 @@ void RKTasks_KillAllThreads( RKTasks_ThreadGroup ThreadGroup ) ;
 
 int RKTasks_KillThreadWithTid( RKTasks_ThreadGroup ThreadGroup, int tid ) ;
 
+
+/*
+ RKTasks_DeleteTask
+ 
+ Delete given Task, via its ThisTask object.
+ 
+ */
+
+void RKTasks_DeleteTask( RKTasks_ThisTask ThisTask ) ;
+
 /*
  RKTasks_AddTask_Func
  
@@ -262,8 +276,10 @@ int RKTasks_KillThreadWithTid( RKTasks_ThreadGroup ThreadGroup, int tid ) ;
  
  The macro RKTasks_AddTask is available which explicitly casts TaskArgs to (void*).
  
+ Returns a ThisTask object. ThisTask is also passed to the task itself.
+ 
  */
 
-void RKTasks_AddTask_Func(RKTasks_TaskGroup TaskGroup, void (*TaskFunc)(void *), void *TaskArgs ) ;
+RKTasks_ThisTask RKTasks_AddTask_Func(RKTasks_TaskGroup TaskGroup, void (*TaskFunc)(void *, struct RKTasks_ThisTask_s *), void *TaskArgs ) ;
 
 #endif
