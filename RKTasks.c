@@ -34,7 +34,7 @@ int group_run_id ; } ;
 
 struct RKTasks_ThreadGroup_s { RKT_Lock thread_group_lock ; RKThreads ThreadArray ; int MaxNumOfThreads ; int NumOfDeadThreads ;
     
-int NumOfThreads ; RKTasks_TaskGroup Current_TaskGroup ; int alive ; int GoToWork ; int update ; } ;
+int NumOfThreads ; RKTasks_TaskGroup Current_TaskGroup ; int alive ; int GoToWork ; } ;
 
 typedef struct { RKTasks_ThreadGroup ThreadGroup ; int tid ; } RKTasks_Thread_Args_object ;
 
