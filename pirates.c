@@ -146,6 +146,8 @@ pirates_scene pirates_new_scene( piretes2d_scene scene, double draw_distance, RK
     
     new_scene->geom_data = NULL ;
     
+    new_scene->geom_list = NULL ;
+    
     new_scene->scene_bin = pirates_create_scene_bin(new_scene,sort_min,sort_max,level_max) ;
     
     return new_scene ;
@@ -492,6 +494,27 @@ void pirates_destroygrid( pirates_grid grid ) {
     free(grid) ;
     
 }
+
+void pirates_add_triangle_array2( pirates_scene scene, pirates_triangles triangles, int numtrigs ) {
+    
+    if ( scene->geom_list == NULL ) scene->geom_list = RKList_NewList() ;
+    
+    if ( triangles != NULL ) {
+    
+    pirates_geom_block block = RKMem_NewMemOfType(pirates_geom_block_object) ;
+    
+    block->type = pr_triangles ;
+    
+    block->triangles.numtrigs = numtrigs ;
+    
+    block->triangles.triangles = triangles ;
+    
+    block->node = RKList_AddToList(scene->geom_list, (void*)block) ;
+        
+    }
+    
+}
+
 
 pirates_triangle_array_buffer pirates_add_triangle_array( pirates_scene scene, pirates_triangles triangles, int numtrigs ) {
     
@@ -907,30 +930,24 @@ typedef struct { int flag ; pirates_bounding_box bounding_box ; pirates_spheres 
 
 typedef Group_object* Group ;
 
-Group NewGroup( pirates_sphere sphere ) {
+Group NewGroup( pirates_bounding_box box ) {
     
     Group new_group = RKMem_NewMemOfType(Group_object) ;
     
-    new_group->sphere_array = RKMem_NewMemOfType(pirates_sphere) ;
+    new_group->numspheres = 0 ;
     
-    new_group->numspheres = 1 ;
-    
-    new_group->sphere_array[0] = sphere ;
+    new_group->sphere_array = NULL ;
     
     new_group->flag = 0 ;
     
-    new_group->bounding_box = sphere->bounding_box ;
+    new_group->bounding_box = box ;
     
     return new_group ;
 }
 
 void pirates_addSphere_to_Group( pirates_sphere sphere,  Group Group_ ) {
     
-    Group_->numspheres++ ;
-    
-    Group_->sphere_array = RKMem_Realloc(Group_->sphere_array, Group_->numspheres, Group_->numspheres-1, pirates_sphere, 1) ;
-    
-    Group_->sphere_array[Group_->numspheres-1] = sphere ;
+    pirates_add_sphere(&(Group_->sphere_array), &(Group_->numspheres), sphere) ;
     
     Group_->bounding_box.X += sphere->bounding_box.X ;
     
@@ -1024,6 +1041,61 @@ void pirates_add_bin( Group Group_, pirates_bin bin, pirates_bins* new_bins, int
 
 void pirates_bins_good_sort( pirates_bin bin, pirates_bins* new_bins, int* num_of_new_bins, pirates_scene_bin scene_bin ) {
     
+    pirates_bounding_box box = bin->bounding_box ;
+    
+    int i = 0 ;
+    
+    int j = 0 ;
+    
+    int n = 4 ;
+    
+    float box_xval = box.x ;
+    
+    pirates_bounding_box* boxes = RKMem_CArray(n, pirates_bounding_box) ;
+    
+    Group* Groups = RKMem_CArray(n,Group) ;
+    
+    while ( i < n ) {
+        
+        boxes[i] = box ;
+        
+        boxes[i].x = box_xval ;
+        
+        box_xval = boxes[i].X = ((box.X) / n) * (i+1) ;
+        
+        Groups[i] = NewGroup(boxes[i]) ;
+        
+        j = 0 ;
+        
+        while ( j < bin->numspheres ) {
+            
+            if ( CheckXYZ(bin->sphere_array[j]->bounding_box,Groups[i]->bounding_box) ) {
+            
+            pirates_addSphere_to_Group(bin->sphere_array[j],Groups[i]) ;
+            
+            }
+            
+            j++ ;
+        }
+        
+        pirates_add_bin(Groups[i],bin,new_bins,num_of_new_bins,scene_bin) ;
+        
+        i++ ;
+    }
+    
+    i = 0 ;
+    
+    while ( i < n ) {
+        
+        free(Groups[i]) ;
+        
+        i++ ;
+    }
+
+    
+    free(boxes) ;
+    
+    free(Groups) ;
     
 }
 
@@ -1180,6 +1252,8 @@ float Sphere_intersection(Ray ray, pirates_sphere sphere) {
     } else
         return 0 ;
 }
+
+//From: Fast, Minimum Storage Ray/Triangle Intersection: http://www.graphics.cornell.edu/pubs/1997/MT97.pdf
 
 double Trig_intersection(Ray ray, RKMVector vert1, RKMVector vert2, RKMVector vert3) {
     

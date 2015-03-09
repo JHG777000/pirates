@@ -94,6 +94,18 @@ RKList_node RKList_AddToList( RKList list, void* data ) {
     return list->last ;
 }
 
+void RKList_AddNodeToList(RKList list, RKList_node node) {
+    
+    RKList_AddToList(list, node->data) ;
+}
+
+void RKList_MoveNodeFromListToList(RKList list_a, RKList list_b, RKList_node node) {
+    
+    RKList_AddNodeToList(list_b,node) ;
+    
+    RKList_DeleteNode(list_a, node) ;
+}
+
 void* RKList_GetData(RKList_node node) {
     
     return node->data ;

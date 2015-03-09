@@ -78,7 +78,7 @@ typedef RKMVector pirates_triangles ; //N-Vector
 
 typedef struct { RKMVector position ; float radius ; pirates_bounding_box bounding_box ; pirates_triangle triangle ;
     
-double t ; int group_id ; RKT_Lock sphere_lock ; } pirates_sphere_object ;
+double t ; int sphere_id ; RKT_Lock sphere_lock ; } pirates_sphere_object ;
 
 typedef pirates_sphere_object* pirates_sphere ;
 
@@ -108,6 +108,18 @@ pirates_grid_cell*** cell_array ; } pirates_grid_object ;
 
 typedef pirates_grid_object* pirates_grid ;
 
+typedef RKList pirates_geom_list ;
+
+typedef RKList_node pirates_geom_list_node ;
+
+typedef enum { pr_triangles } pirates_geom_type ;
+
+typedef struct { pirates_geom_type type ; pirates_geom_list_node node ;
+    
+union { struct { pirates_triangles triangles ; int numtrigs ; } triangles ; } ; } pirates_geom_block_object ;
+
+typedef pirates_geom_block_object* pirates_geom_block ;
+
 typedef struct pirates_triangle_array_buffer_s { pirates_triangles triangles ; int numtrigs ; struct pirates_triangle_array_buffer_s* before ;
     
 struct pirates_triangle_array_buffer_s* after ; struct pirates_triangle_array_buffer_s* last ; } pirates_triangle_array_buffer_object ;
@@ -120,7 +132,7 @@ typedef struct pirates_scene_s {
     
 piretes2d_scene scene ; Raycam Camera ;
     
-pirates_Materials materials ; int num_of_materials ; pirates_geom_data geom_data ; pirates_grid grid ; int res_x ; int res_y ;
+pirates_Materials materials ; int num_of_materials ; pirates_geom_list geom_list ; pirates_geom_data geom_data ; pirates_grid grid ; int res_x ; int res_y ;
     
 int grid_x ; int grid_y ; int grid_z ; float max_x ; float max_y ; float max_z ; float min_x ; float min_y ; float min_z ;
     
