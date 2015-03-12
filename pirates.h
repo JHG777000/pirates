@@ -132,7 +132,7 @@ pirates_Materials materials ; int num_of_materials ; pirates_geom_data geom_data
     
 pirates_scene_bin scene_bin ; double draw_distance ; pirates_bounding_box bounding_box ;
     
-pirates_spheres sphere_array ; int numspheres ; pirates_geom_list geom_list ; RKT_Lock SubLock ; int box_init ; } pirates_scene_object ;
+pirates_spheres sphere_array ; int numspheres ; pirates_geom_list primitive_list ; RKT_Lock SubLock ; int box_init ; } pirates_scene_object ;
 
 typedef pirates_scene_object* pirates_scene ;
 
@@ -154,7 +154,7 @@ void pirates_render(pirates_scene scene) ;
 
 void pirates_add_sphere( pirates_spheres* sphere_array, int* numspheres, pirates_sphere sphere ) ;
 
-pirates_bounding_box pirates_compute_bounding_box( pirates_triangle triangle ) ;
+pirates_bounding_box pirates_compute_triangle_bounding_box( pirates_triangle triangle ) ;
 
 void pirates_change_camera(pirates_scene scene, float x, float y, float z) ;
 

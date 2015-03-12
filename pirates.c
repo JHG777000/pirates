@@ -148,7 +148,7 @@ pirates_scene pirates_new_scene( piretes2d_scene scene, double draw_distance, RK
     
     new_scene->geom_data = NULL ;
     
-    new_scene->geom_list = NULL ;
+    new_scene->primitive_list = NULL ;
     
     RKTasks_StartLock(new_scene->SubLock) ;
     
@@ -391,7 +391,7 @@ pirates_volume pirates_new_volume( void* data, pirates_intersection_func_type in
     return volume ;
 }
 
-pirates_primitive pirates_make_primitive( pirates_scene scene, pirates_volume volume, pirates_bounding_box bounding_box ) {
+void pirates_make_triangle_primitive( pirates_scene scene, pirates_volume volume, pirates_bounding_box bounding_box ) {
     
     float a = 0 ;
     
@@ -433,19 +433,24 @@ pirates_primitive pirates_make_primitive( pirates_scene scene, pirates_volume vo
     
     RKTasks_LockLock(scene->SubLock) ;
     
-    primitive->node = RKList_AddToList(scene->geom_list, (void*)primitive) ;
+    primitive->node = RKList_AddToList(scene->primitive_list, (void*)primitive) ;
     
     RKTasks_UnLockLock(scene->SubLock) ;
-    
-    return primitive ;
 }
 
 void pirates_add_triangle_array2( pirates_scene scene, pirates_triangles triangles, int numtrigs ) {
     
     int i = 0 ;
     
+    pirates_triangle triangle ;
+    
+    if ( triangles == NULL ) return ;
+    
     while ( i < numtrigs ) {
         
+        triangle = pr_gettriangle(triangles,i) ;
+        
+        pirates_make_triangle_primitive(scene,pirates_new_volume((void*)triangle,pirates_triangle_intersection),pirates_compute_triangle_bounding_box(triangle)) ;
         
         i++ ;
     }
@@ -542,7 +547,7 @@ void pirates_delete_triangle_arrays( pirates_scene scene ) {
     }
 }
 
-pirates_bounding_box pirates_compute_bounding_box( pirates_triangle triangle ) {
+pirates_bounding_box pirates_compute_triangle_bounding_box( pirates_triangle triangle ) {
     
     pirates_bounding_box bounding_box ;
     
@@ -755,7 +760,7 @@ void pirates_proc_scene( pirates_scene scene ) {
                 
                 triangle = (&(node->triangles[i*10])) ;
                 
-                pirates_add_sphere(&(scene->sphere_array),&(scene->numspheres),pirates_compute_bounding_sphere(triangle,pirates_compute_bounding_box(triangle))) ;
+                pirates_add_sphere(&(scene->sphere_array),&(scene->numspheres),pirates_compute_bounding_sphere(triangle,pirates_compute_triangle_bounding_box(triangle))) ;
                 
                 i++ ;
             }
