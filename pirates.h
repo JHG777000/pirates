@@ -100,25 +100,21 @@ pirates_bins scene_bin_array ; int num_of_bins_in_scene ; } pirates_scene_bin_ob
 
 typedef pirates_scene_bin_object* pirates_scene_bin ;
 
-typedef struct { pirates_bounding_box bounding_box ; pirates_spheres sphere_array ; int numspheres ; } pirates_grid_cell ;
-
-typedef struct { int GridX ; int GridY ; int GridZ ; float GridSizeX ; float GridSizeY ; float GridSizeZ ;
-
-pirates_grid_cell*** cell_array ; } pirates_grid_object ;
-
-typedef pirates_grid_object* pirates_grid ;
-
 typedef RKList pirates_geom_list ;
 
 typedef RKList_node pirates_geom_list_node ;
 
-typedef enum { pr_triangles } pirates_geom_type ;
+typedef double (*pirates_intersection_func_type)(Ray ray, void* data) ;
 
-typedef struct { pirates_geom_type type ; pirates_geom_list_node node ;
-    
-union { struct { pirates_triangles triangles ; int numtrigs ; } triangles ; } ; } pirates_geom_block_object ;
+typedef struct { pirates_intersection_func_type intersection_func ; void* data ; } pirates_volume_object ;
 
-typedef pirates_geom_block_object* pirates_geom_block ;
+typedef pirates_volume_object* pirates_volume ;
+
+typedef struct { pirates_bounding_box bounding_box ; pirates_volume bounding_volume ; pirates_volume shape_volume ; pirates_geom_list_node node ;
+
+double t ; } pirates_primitive_object ;
+
+typedef pirates_primitive_object* pirates_primitive ;
 
 typedef struct pirates_triangle_array_buffer_s { pirates_triangles triangles ; int numtrigs ; struct pirates_triangle_array_buffer_s* before ;
     
@@ -132,23 +128,17 @@ typedef struct pirates_scene_s {
     
 piretes2d_scene scene ; Raycam Camera ;
     
-pirates_Materials materials ; int num_of_materials ; pirates_geom_list geom_list ; pirates_geom_data geom_data ; pirates_grid grid ; int res_x ; int res_y ;
-    
-int grid_x ; int grid_y ; int grid_z ; float max_x ; float max_y ; float max_z ; float min_x ; float min_y ; float min_z ;
+pirates_Materials materials ; int num_of_materials ; pirates_geom_data geom_data ; int res_x ; int res_y ;
     
 pirates_scene_bin scene_bin ; double draw_distance ; pirates_bounding_box bounding_box ;
     
-pirates_spheres sphere_array ; int numspheres ; } pirates_scene_object ;
+pirates_spheres sphere_array ; int numspheres ; pirates_geom_list geom_list ; RKT_Lock SubLock ; int box_init ; } pirates_scene_object ;
 
 typedef pirates_scene_object* pirates_scene ;
 
 pirates_scene pirates_new_scene( piretes2d_scene scene, double draw_distance, RKMVector position, RKMVector focus, int res_x, int res_y, int sort_min, int sort_max, int level_max) ;
 
-pirates_grid pirates_newgrid( pirates_scene scene, float grid_x, float grid_y, float grid_z ) ;
-
 pirates_triangle_array_buffer pirates_add_triangle_array( pirates_scene scene, pirates_triangles triangles, int numtrigs ) ;
-
-void pirates_destroygrid( pirates_grid grid ) ;
 
 pirates_Material pirates_newmaterial( raycolor color ) ;
 
@@ -171,10 +161,6 @@ void pirates_change_camera(pirates_scene scene, float x, float y, float z) ;
 void pirates_createbins(pirates_scene scene) ;
 
 float box_intersection( Ray r, pirates_bin box ) ;
-
-float Sphere_intersection(Ray ray, pirates_sphere sphere) ;
-
-double Trig_intersection(Ray ray, RKMVector vert1, RKMVector vert2, RKMVector vert3) ;
 
 pirates_scene_bin pirates_create_scene_bin(pirates_scene scene, int sort_min, int sort_max, int level_max) ;
 

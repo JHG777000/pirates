@@ -18,6 +18,8 @@ static void pirates_destroymaterials( pirates_scene scene ) ;
 
 static void pirates_delete_triangle_arrays( pirates_scene scene ) ;
 
+static void ComputeBoundingSphere(  RKMVector A,  RKMVector B,  RKMVector C, float* a, float* b, float* c, float* r) ;
+
 void pirates_addfloat( float float_, float** float_array_ptr, int* num_of_floats ) ;
 
 static int ARandomNumber( int randmax ) {
@@ -148,6 +150,10 @@ pirates_scene pirates_new_scene( piretes2d_scene scene, double draw_distance, RK
     
     new_scene->geom_list = NULL ;
     
+    RKTasks_StartLock(new_scene->SubLock) ;
+    
+    new_scene->box_init = 0 ;
+    
     new_scene->scene_bin = pirates_create_scene_bin(new_scene,sort_min,sort_max,level_max) ;
     
     return new_scene ;
@@ -155,7 +161,7 @@ pirates_scene pirates_new_scene( piretes2d_scene scene, double draw_distance, RK
 
 void pirates_change_camera(pirates_scene scene, float x, float y, float z) {
     
-    free(scene->Camera) ;
+    freecam(scene->Camera) ;
     
     RKMath_Vectorit(position, 0.1 + x, 0.1 + y, -12.0 + z) ;
     
@@ -262,257 +268,187 @@ void pirates_destroymaterials( pirates_scene scene ) {
     free(scene->materials) ;
 }
 
-pirates_grid pirates_newgrid( pirates_scene scene, float grid_x, float grid_y, float grid_z) {
+static float Sphere_intersection(Ray ray, pirates_sphere sphere) {
     
-    pirates_grid grid = RKMem_NewMemOfType(pirates_grid_object) ;
+    RKMath_NewVector(distance, 3) ;
     
-    grid->cell_array = NULL ;
+    RKMath_Sub(distance, ray.origin, sphere->position, 3) ;
     
-    float GridSizeX = 0 ;
+    float b = RKMath_Dot(distance, ray.direction, 3) ;
     
-    float GridSizeY = 0 ;
+    float c = RKMath_Dot(distance, distance, 3) - pow(sphere->radius,2) ;
     
-    float GridSizeZ = 0 ;
+    float d = (b*b) - c ;
     
-    float GridSizeXMin = 0 ;
+    if (d > 0) {
+        return -b - sqrt(d) ;
+    } else
+        return 0 ;
+}
+
+static float Sphere_Intersection(Ray ray, RKMVector sphere) {
     
-    float GridSizeYMin = 0 ;
+    RKMath_NewVector(distance, 3) ;
     
-    float GridSizeZMin = 0 ;
+    RKMath_Vectorit(position, sphere[0], sphere[1], sphere[2]) ;
     
-    int GridX = 1 ;
+    float radius = sphere[3] ;
     
-    int GridY = 1 ;
+    RKMath_Sub(distance, ray.origin, position, 3) ;
     
-    int GridZ = 1 ;
-        
-        GridX = grid_x ;
-        
-        GridY = grid_y ;
-        
-        GridZ = grid_z ;
-        
-        float ResXMax = scene->max_x ;
-        
-        float ResYMax = scene->max_y ;
-        
-        float ResZMax = scene->max_z ;
+    float b = RKMath_Dot(distance, ray.direction, 3) ;
     
-        float ResXMin = scene->min_x ;
+    float c = RKMath_Dot(distance, distance, 3) - pow(radius,2) ;
     
-        float ResYMin = scene->min_y ;
+    float d = (b*b) - c ;
     
-        float ResZMin = scene->min_z ;
+    if (d > 0) {
+        return -b - sqrt(d) ;
+    } else
+        return 0 ;
+}
+
+//From: Fast, Minimum Storage Ray/Triangle Intersection: http://www.graphics.cornell.edu/pubs/1997/MT97.pdf
+
+static double Trig_intersection(Ray ray, RKMVector vert1, RKMVector vert2, RKMVector vert3) {
     
-        //if ( GridX > ResX ) GridX = ResX ;
-        
-        GridSizeX = ResXMax / GridX ;
+    double u = 0 ;
     
-        GridSizeXMin = ResXMin / GridX ;
+    double v = 0 ;
     
-        //if ( GridSizeX < 1 ) GridSizeX = 3 ;
-        
-        //if ( GridY > ResY ) GridY = ResY ;
-        
-        GridSizeY = ResYMax / GridY ;
+    double t = 0 ;
     
-        GridSizeYMin = ResYMin / GridY ;
+    double det = 0 ;
     
-        //if ( GridSizeY < 1 ) GridSizeY = 3 ;
-        
-        //if ( GridZ > ResZ ) GridZ = ResZ ;
-        
-        GridSizeZ = ResZMax / GridZ ;
+    double inv_det = 0 ;
     
-        GridSizeZMin = ResZMin / GridZ ;
+    #define EPSOLON 0.000001
     
-        //if ( GridSizeZ < 1 ) GridSizeZ = 3 ;
-        
-        grid->GridX = GridX ;
-        
-        grid->GridY = GridY ;
-        
-        grid->GridZ = GridZ ;
-        
-        grid->GridSizeX = GridSizeX ;
-        
-        grid->GridSizeY = GridSizeY ;
-        
-        grid->GridSizeZ = GridSizeZ ;
+    RKMath_NewVector(edge1, 3) ;
+    
+    RKMath_NewVector(edge2, 3) ;
+    
+    RKMath_NewVector(tvec, 3) ;
+    
+    RKMath_NewVector(pvec, 3) ;
+    
+    RKMath_NewVector(qvec, 3) ;
+    
+    RKMath_Sub(edge1, vert2, vert1, 3) ;
+    
+    RKMath_Sub(edge2, vert3, vert1, 3) ;
+    
+    RKMath_Cross(pvec, ray.direction, edge2) ;
+    
+    det = RKMath_Dot(edge1, pvec, 3) ;
+    
+    if (det > -EPSOLON && det < EPSOLON) return 0 ;
+    
+    inv_det = 1.0 / det ;
+    
+    if ( inv_det == 0 ) return 0 ;
+    
+    RKMath_Sub(tvec, ray.origin, vert1, 3) ;
+    
+    u = RKMath_Dot(tvec, pvec, 3) * inv_det ;
+    
+    if ( ( u < 0.0 ) || ( u > 1.0 ) ) return 0 ;
+    
+    RKMath_Cross(qvec, tvec, edge1) ;
+    
+    v = RKMath_Dot(ray.direction, qvec, 3) * inv_det ;
+    
+    if ( ( v < 0.0 ) || ( (u + v) > 1.0 ) ) return 0 ;
+    
+    t = RKMath_Dot(edge2, qvec, 3) * inv_det ;
+    
+    return  t ;
+    
+}
+
+static double pirates_sphere_intersection(Ray ray, void* data) {
+    
+    RKMVector sphere = (RKMVector)data ;
+    
+    return Sphere_Intersection(ray, sphere) ;
+}
+
+static double pirates_triangle_intersection(Ray ray, void* data) {
+    
+    pirates_triangle triangle = (pirates_triangle)data ;
+    
+    return Trig_intersection(ray,&(triangle[pr_V1X]),&(triangle[pr_V2X]),&(triangle[pr_V3X])) ;
+}
+
+pirates_volume pirates_new_volume( void* data, pirates_intersection_func_type intersection_func) {
+    
+    pirates_volume volume = RKMem_NewMemOfType(pirates_volume_object) ;
+    
+    volume->data = data ;
+    
+    volume->intersection_func = intersection_func ;
+    
+    return volume ;
+}
+
+pirates_primitive pirates_make_primitive( pirates_scene scene, pirates_volume volume, pirates_bounding_box bounding_box ) {
+    
+    float a = 0 ;
+    
+    float b = 0 ;
+    
+    float c = 0 ;
+    
+    float r = 0 ;
    
+    RKMath_NewVector(sphere, 4) ;
     
-    grid->cell_array = RKMem_CArray(GridX, pirates_grid_cell**) ;
+    pirates_triangle triangle = (pirates_triangle)volume->data ;
     
-    int x = 0 ;
+    RKMVector vert1 = &(triangle[pr_V1X]) ;
     
-    int y = 0 ;
+    RKMVector vert2 = &(triangle[pr_V2X]) ;
     
-    int z = 0 ;
+    RKMVector vert3 = &(triangle[pr_V3X]) ;
     
-    while ( x < GridX ) {
-        
-        grid->cell_array[x] = RKMem_CArray(GridY, pirates_grid_cell*) ;
-        
-        x++ ;
-    }
+    ComputeBoundingSphere(vert1, vert2, vert3, &a, &b, &c, &r) ;
     
-    x = 0 ;
+    pirates_primitive primitive = RKMem_NewMemOfType(pirates_primitive_object) ;
     
-    while ( x < GridX ) {
+    primitive->bounding_box =  bounding_box ;
     
-    y = 0 ;
-        
-    while ( y < GridY ) {
-        
-        grid->cell_array[x][y] = RKMem_CArray(GridZ, pirates_grid_cell) ;
-        
-        y++ ;
-    }
-        x++ ;
-    }
+    primitive->shape_volume = volume ;
     
-         
-    x = 0 ;
+    sphere[0] = a ;
     
-    while ( x < GridX ) {
-        
-        y = 0 ;
-        
-        while ( y < GridY ) {
-          
-            z = 0 ;
-            
-          while ( z < GridZ ) {
-            
-            grid->cell_array[x][y][z].bounding_box.X = (x+1) * GridSizeX ;
-            
-            grid->cell_array[x][y][z].bounding_box.x = (x+0) * GridSizeXMin ;
-            
-            grid->cell_array[x][y][z].bounding_box.Y = (y+1) * GridSizeY ;
-            
-            grid->cell_array[x][y][z].bounding_box.y = (y+0) * GridSizeYMin ;
-              
-            grid->cell_array[x][y][z].bounding_box.Z = (z+1) * GridSizeZ ;
-              
-            grid->cell_array[x][y][z].bounding_box.z = (z+0) * GridSizeZMin ;
-              
-            grid->cell_array[x][y][z].sphere_array = NULL ;
-              
-            grid->cell_array[x][y][z].numspheres = 0 ;
-           
-            z++ ;
-          }
-            y++ ;
-        }
-        
-        x++ ;
-    }
+    sphere[1] = b ;
     
-    return grid ;
-}
-
-void pirates_clearthegrid( pirates_grid grid ) {
+    sphere[2] = c ;
     
-    int x = 0 ;
+    sphere[3] = r ;
     
-    int y = 0 ;
+    primitive->bounding_volume = pirates_new_volume((void*)sphere,pirates_sphere_intersection) ;
     
-    int z = 0 ;
+    primitive->t = 0 ;
     
-    int i = 0 ;
+    RKTasks_LockLock(scene->SubLock) ;
     
-    while ( x < grid->GridX ) {
-        
-        y = 0 ;
-        
-        while ( y < grid->GridY ) {
-            
-            z = 0 ;
-            
-            while ( z < grid->GridZ ) {
-                
-                i = 0 ;
-                
-                if ( grid->cell_array[x][y][z].sphere_array != NULL ) {
-                
-                 while ( i < grid->cell_array[x][y][z].numspheres ) {
-                    
-                    //free(grid->cell_array[x][y][z].sphere_array[i]->position) ;
-                     
-                    //free(grid->cell_array[x][y][z].sphere_array[i]) ;
-            
-                     i++ ;
-                 }
-                
-                }
-                
-                free(grid->cell_array[x][y][z].sphere_array) ;
-                
-                z++ ;
-            }
-            y++ ;
-        }
-        
-        x++ ;
-    }
-
+    primitive->node = RKList_AddToList(scene->geom_list, (void*)primitive) ;
     
-}
-
-void pirates_destroygrid( pirates_grid grid ) {
+    RKTasks_UnLockLock(scene->SubLock) ;
     
-    int x = 0 ;
-    
-    int y = 0 ;
-    
-    pirates_clearthegrid(grid) ;
-    
-    while ( x < grid->GridX ) {
-        
-        y = 0 ;
-        
-        while ( y < grid->GridY ) {
-            
-            free(grid->cell_array[x][y]) ;
-            
-            y++ ;
-        }
-        x++ ;
-    }
-
-    x = 0 ;
-    
-    while ( x < grid->GridX ) {
-        
-        free(grid->cell_array[x]) ;
-        
-        x++ ;
-    }
-    
-    free(grid->cell_array) ;
-    
-    free(grid) ;
-    
+    return primitive ;
 }
 
 void pirates_add_triangle_array2( pirates_scene scene, pirates_triangles triangles, int numtrigs ) {
     
-    if ( scene->geom_list == NULL ) scene->geom_list = RKList_NewList() ;
+    int i = 0 ;
     
-    if ( triangles != NULL ) {
-    
-    pirates_geom_block block = RKMem_NewMemOfType(pirates_geom_block_object) ;
-    
-    block->type = pr_triangles ;
-    
-    block->triangles.numtrigs = numtrigs ;
-    
-    block->triangles.triangles = triangles ;
-    
-    block->node = RKList_AddToList(scene->geom_list, (void*)block) ;
+    while ( i < numtrigs ) {
         
+        
+        i++ ;
     }
-    
 }
 
 
@@ -727,12 +663,6 @@ pirates_sphere pirates_compute_bounding_sphere( pirates_triangle triangle, pirat
     
 }
 
-void pirates_add_sphere_to_cell( int x, int y, int z, pirates_grid_cell*** cell_array, pirates_sphere sphere ) {
-    
-    pirates_add_sphere(&(cell_array[x][y][z].sphere_array),&(cell_array[x][y][z].numspheres),sphere) ;
-    
-}
-
 void pirates_add_sphere( pirates_spheres* sphere_array, int* numspheres, pirates_sphere sphere ) {
     
     (*numspheres)++ ;
@@ -792,46 +722,6 @@ static int CheckInside( pirates_bounding_box object, pirates_bounding_box box ) 
     if ( (object.X > box.x) && (object.X <= box.X) && (object.Y > box.y) && (object.Y <= box.Y) && (object.Z > box.z) && (object.Z <= box.Z) && (object.x < box.X) && (object.x >= box.x) && (object.y < box.Y) && (object.y >= box.y) && (object.z < box.Z) && (object.z >= box.z)) return 1 ;
     
     return 0 ;
-}
-
-#define pr_fieldX(x) (x * scene->field_x)
-
-#define pr_fieldY(y) (y * scene->field_y)
-
-#define pr_fieldZ(z) (z * scene->field_z)
-
-void pirates_compute_grid( pirates_scene scene, pirates_sphere sphere ) {
-    
-    int i = 0 ;
-    
-    int j = 0 ;
-    
-    int k = 0 ;
-    
-    while ( i < scene->grid->GridX ) {
-        
-        j = 0 ;
-        
-        while ( j < scene->grid->GridY ) {
-            
-            k = 0 ;
-            
-            while ( k < scene->grid->GridZ ) {
-            
-            if ( CheckX(sphere->bounding_box.X, sphere->bounding_box.x, scene->grid->cell_array[i][j][k].bounding_box.X, scene->grid->cell_array[i][j][k].bounding_box.x) && CheckY(sphere->bounding_box.Y, sphere->bounding_box.y, scene->grid->cell_array[i][j][k].bounding_box.Y, scene->grid->cell_array[i][j][k].bounding_box.y) && CheckZ(sphere->bounding_box.Z, sphere->bounding_box.z, scene->grid->cell_array[i][j][k].bounding_box.Z, scene->grid->cell_array[i][j][k].bounding_box.z) ) {
-                
-                pirates_add_sphere_to_cell(i,j,k, scene->grid->cell_array, sphere) ;
-               
-            }
-             
-                k++ ;
-            }
-            
-            j++ ;
-        }
-        
-        i++ ;
-    }
 }
 
 void pirates_compute_scene_bounding_box( pirates_scene scene, pirates_bounding_box bounding_box ) ;
@@ -1071,7 +961,7 @@ void pirates_bins_good_sort( pirates_bin bin, pirates_bins* new_bins, int* num_o
             
             if ( CheckXYZ(bin->sphere_array[j]->bounding_box,Groups[i]->bounding_box) ) {
             
-            pirates_addSphere_to_Group(bin->sphere_array[j],Groups[i]) ;
+            //pirates_addSphere_to_Group(bin->sphere_array[j],Groups[i]) ;
             
             }
             
@@ -1163,6 +1053,24 @@ void pirates_createbins(pirates_scene scene) {
 
 void pirates_compute_scene_bounding_box( pirates_scene scene, pirates_bounding_box bounding_box ) {
     
+    if ( !scene->box_init ) {
+    
+    scene->bounding_box.x = bounding_box.x ;
+    
+    scene->bounding_box.X = bounding_box.X ;
+    
+    scene->bounding_box.y = bounding_box.y ;
+    
+    scene->bounding_box.Y = bounding_box.Y ;
+    
+    scene->bounding_box.z = bounding_box.z ;
+    
+    scene->bounding_box.Z = bounding_box.Z ;
+    
+    scene->box_init++ ;
+        
+    }
+    
     if ( bounding_box.X > scene->bounding_box.X ) scene->bounding_box.X = bounding_box.X ;
     
     if ( bounding_box.x < scene->bounding_box.x ) scene->bounding_box.x = bounding_box.x ;
@@ -1233,82 +1141,6 @@ Ray CastRay(pirates_scene scene, Raycam raycam, float x, float y) {
     RKMath_Vectorit(direction, (x * (0.5/scene->res_x)) - (0.5/2.0f), (y * (0.5/scene->res_y)) - (0.5/2.0f), 1) ;
     
     return newray(raycam->position, direction) ;
-}
-
-float Sphere_intersection(Ray ray, pirates_sphere sphere) {
-    
-    RKMath_NewVector(distance, 3) ;
-    
-    RKMath_Sub(distance, ray.origin, sphere->position, 3) ;
-    
-    float b = RKMath_Dot(distance, ray.direction, 3) ;
-    
-    float c = RKMath_Dot(distance, distance, 3) - pow(sphere->radius,2) ;
-    
-    float d = (b*b) - c ;
-    
-    if (d > 0) {
-        return -b - sqrt(d) ;
-    } else
-        return 0 ;
-}
-
-//From: Fast, Minimum Storage Ray/Triangle Intersection: http://www.graphics.cornell.edu/pubs/1997/MT97.pdf
-
-double Trig_intersection(Ray ray, RKMVector vert1, RKMVector vert2, RKMVector vert3) {
-    
-    double u = 0 ;
-    
-    double v = 0 ;
-    
-    double t = 0 ;
-    
-    double det = 0 ;
-    
-    double inv_det = 0 ;
-    
-    #define EPSOLON 0.000001
-    
-    RKMath_NewVector(edge1, 3) ;
-    
-    RKMath_NewVector(edge2, 3) ;
-    
-    RKMath_NewVector(tvec, 3) ;
-    
-    RKMath_NewVector(pvec, 3) ;
-    
-    RKMath_NewVector(qvec, 3) ;
-    
-    RKMath_Sub(edge1, vert2, vert1, 3) ;
-    
-    RKMath_Sub(edge2, vert3, vert1, 3) ;
-    
-    RKMath_Cross(pvec, ray.direction, edge2) ;
-    
-    det = RKMath_Dot(edge1, pvec, 3) ;
-    
-    if (det > -EPSOLON && det < EPSOLON) return 0 ;
-    
-    inv_det = 1.0 / det ;
-    
-    if ( inv_det == 0 ) return 0 ;
-    
-    RKMath_Sub(tvec, ray.origin, vert1, 3) ;
-    
-    u = RKMath_Dot(tvec, pvec, 3) * inv_det ;
-    
-    if ( ( u < 0.0 ) || ( u > 1.0 ) ) return 0 ;
-    
-    RKMath_Cross(qvec, tvec, edge1) ;
-    
-    v = RKMath_Dot(ray.direction, qvec, 3) * inv_det ;
-    
-    if ( ( v < 0.0 ) || ( (u + v) > 1.0 ) ) return 0 ;
-    
-    t = RKMath_Dot(edge2, qvec, 3) * inv_det ;
-    
-    return  t ;
-    
 }
 
 void pirates_addfloat( float float_, float** float_array_ptr, int* num_of_floats ) {
