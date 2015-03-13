@@ -177,6 +177,15 @@ void RKList_DeleteNode( RKList list, RKList_node node ) {
     free(node) ;
 }
 
+RKList_node RKList_DeleteNodeAndReturnNextNode( RKList list, RKList_node node ) {
+    
+    RKList_node next_node = RKList_GetNextNode(node) ;
+    
+    RKList_DeleteNode(list, node) ;
+    
+    return next_node ;
+}
+
 void RKList_DeleteList( RKList list ) {
     
     while ( list->first != NULL ) {

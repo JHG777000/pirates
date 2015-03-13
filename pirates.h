@@ -50,7 +50,7 @@ typedef pirates_Material* pirates_Materials ;
 
 typedef struct { float X ; float x ; float Y ; float y ; float Z ; float z ; } pirates_bounding_box ;
 
-typedef RKMVector pirates_triangle ; //10-Vector
+typedef RKMVector pirates_triangle ; //11-Vector
 
 typedef RKMVector pirates_triangles ; //N-Vector
 
@@ -75,6 +75,10 @@ typedef RKMVector pirates_triangles ; //N-Vector
 #define pr_V3Z 8
 
 #define pr_M 9
+
+#define pr_trigupdate(triangle) triangle[10]
+
+#define pr_resettrigupdate(triangle) triangle[10] = 0
 
 typedef struct { RKMVector position ; float radius ; pirates_bounding_box bounding_box ; pirates_triangle triangle ;
     
@@ -106,13 +110,19 @@ typedef RKList_node pirates_geom_list_node ;
 
 typedef double (*pirates_intersection_func_type)(Ray ray, void* data) ;
 
-typedef struct { pirates_intersection_func_type intersection_func ; void* data ; } pirates_volume_object ;
+typedef int (*pirates_update_func_type)(void* data) ;
+
+typedef struct { pirates_intersection_func_type intersection_func ; pirates_update_func_type update_func ; void* data ; } pirates_volume_object ;
 
 typedef pirates_volume_object* pirates_volume ;
 
-typedef struct { pirates_bounding_box bounding_box ; pirates_volume bounding_volume ; pirates_volume shape_volume ; pirates_geom_list_node node ;
+typedef pirates_volume (*pirates_bounding_volume_func_type)(void* data) ;
 
-double t ; } pirates_primitive_object ;
+typedef pirates_bounding_box (*pirates_bounding_box_func_type)(void* data) ;
+
+typedef struct { pirates_bounding_box bounding_box ; pirates_bounding_box_func_type bounding_box_func ; pirates_volume bounding_volume ;
+    
+pirates_bounding_volume_func_type bounding_volume_func ; pirates_volume shape_volume ; double t ; } pirates_primitive_object ;
 
 typedef pirates_primitive_object* pirates_primitive ;
 

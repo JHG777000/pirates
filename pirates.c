@@ -380,7 +380,25 @@ static double pirates_triangle_intersection(Ray ray, void* data) {
     return Trig_intersection(ray,&(triangle[pr_V1X]),&(triangle[pr_V2X]),&(triangle[pr_V3X])) ;
 }
 
-pirates_volume pirates_new_volume( void* data, pirates_intersection_func_type intersection_func) {
+static int pirates_sphere_update_func(void* data) {
+    
+    RKMVector sphere = (RKMVector)data ;
+    
+    return sphere[4] ;
+}
+
+static int pirates_triangle_update_func(void* data) {
+    
+    pirates_triangle triangle = (pirates_triangle)data ;
+    
+    int retval = pr_trigupdate(triangle) ;
+    
+    pr_resettrigupdate(triangle) ;
+    
+    return retval ;
+}
+
+pirates_volume pirates_new_volume( void* data, pirates_intersection_func_type intersection_func, pirates_update_func_type update_func ) {
     
     pirates_volume volume = RKMem_NewMemOfType(pirates_volume_object) ;
     
@@ -388,10 +406,26 @@ pirates_volume pirates_new_volume( void* data, pirates_intersection_func_type in
     
     volume->intersection_func = intersection_func ;
     
+    volume->update_func = update_func ;
+    
     return volume ;
 }
 
-void pirates_make_triangle_primitive( pirates_scene scene, pirates_volume volume, pirates_bounding_box bounding_box ) {
+void pirates_destroy_volume( pirates_volume volume ) {
+    
+    free(volume) ;
+}
+
+void pirates_destroy_primitive( pirates_primitive primitive ) {
+    
+    pirates_destroy_volume(primitive->bounding_volume) ;
+    
+    pirates_destroy_volume(primitive->shape_volume) ;
+    
+    free(primitive) ;
+}
+
+static pirates_volume pirates_make_bounding_sphere_for_triangle(void* data) {
     
     float a = 0 ;
     
@@ -400,10 +434,10 @@ void pirates_make_triangle_primitive( pirates_scene scene, pirates_volume volume
     float c = 0 ;
     
     float r = 0 ;
-   
+    
     RKMath_NewVector(sphere, 4) ;
     
-    pirates_triangle triangle = (pirates_triangle)volume->data ;
+    pirates_triangle triangle = (pirates_triangle)data ;
     
     RKMVector vert1 = &(triangle[pr_V1X]) ;
     
@@ -413,12 +447,6 @@ void pirates_make_triangle_primitive( pirates_scene scene, pirates_volume volume
     
     ComputeBoundingSphere(vert1, vert2, vert3, &a, &b, &c, &r) ;
     
-    pirates_primitive primitive = RKMem_NewMemOfType(pirates_primitive_object) ;
-    
-    primitive->bounding_box =  bounding_box ;
-    
-    primitive->shape_volume = volume ;
-    
     sphere[0] = a ;
     
     sphere[1] = b ;
@@ -427,13 +455,35 @@ void pirates_make_triangle_primitive( pirates_scene scene, pirates_volume volume
     
     sphere[3] = r ;
     
-    primitive->bounding_volume = pirates_new_volume((void*)sphere,pirates_sphere_intersection) ;
+    return pirates_new_volume((void*)sphere,pirates_sphere_intersection,NULL) ;
+}
+
+static pirates_bounding_box pirates_triangle_bounding_box_func(void* data) {
+    
+    pirates_triangle triangle = (pirates_triangle)data ;
+    
+    return pirates_compute_triangle_bounding_box(triangle) ;
+}
+
+void pirates_make_triangle_primitive( pirates_scene scene, pirates_volume volume, pirates_bounding_box bounding_box ) {
+    
+    pirates_primitive primitive = RKMem_NewMemOfType(pirates_primitive_object) ;
+    
+    primitive->bounding_box = bounding_box ;
+    
+    primitive->bounding_box_func = pirates_triangle_bounding_box_func ;
+    
+    primitive->shape_volume = volume ;
+    
+    primitive->bounding_volume_func = pirates_make_bounding_sphere_for_triangle ;
+    
+    primitive->bounding_volume = primitive->bounding_volume_func(primitive->shape_volume->data) ;
     
     primitive->t = 0 ;
     
     RKTasks_LockLock(scene->SubLock) ;
     
-    primitive->node = RKList_AddToList(scene->primitive_list, (void*)primitive) ;
+    RKList_AddToList(scene->primitive_list, (void*)primitive) ;
     
     RKTasks_UnLockLock(scene->SubLock) ;
 }
@@ -450,7 +500,7 @@ void pirates_add_triangle_array2( pirates_scene scene, pirates_triangles triangl
         
         triangle = pr_gettriangle(triangles,i) ;
         
-        pirates_make_triangle_primitive(scene,pirates_new_volume((void*)triangle,pirates_triangle_intersection),pirates_compute_triangle_bounding_box(triangle)) ;
+        pirates_make_triangle_primitive(scene,pirates_new_volume((void*)triangle,pirates_triangle_intersection,pirates_triangle_update_func),pirates_compute_triangle_bounding_box(triangle)) ;
         
         i++ ;
     }
@@ -742,48 +792,49 @@ void pirates_add_geom_to_bins( pirates_scene scene, pirates_scene_bin scene_bin 
 
 void pirates_proc_scene( pirates_scene scene ) {
     
-    pirates_triangle_array_buffer node = NULL ;
+    pirates_geom_list_node deadnode = NULL ;
     
-    pirates_triangle triangle ;
+    pirates_geom_list_node node = NULL ;
     
-    int i = 0 ;
+    pirates_primitive primitive = NULL ;
     
-    if ( scene->geom_data != NULL ) {
+    node = RKList_GetFirstNode(scene->primitive_list) ;
+    
+    while (node != NULL) {
         
-        node = scene->geom_data ;
+        if ( deadnode != NULL ) {
+            
+            RKList_DeleteNode(scene->primitive_list, deadnode) ;
+            
+            deadnode = NULL ;
+        }
         
-        while ( node != NULL ) {
+        primitive = (pirates_primitive)RKList_GetData(node) ;
+        
+        if ( primitive->shape_volume->data != NULL ) {
             
-            i = 0 ;
-            
-            while ( i < node->numtrigs ) {
+            if (primitive->shape_volume->update_func(primitive->shape_volume->data)) {
                 
-                triangle = (&(node->triangles[i*10])) ;
+                primitive->bounding_box = primitive->bounding_box_func(primitive->shape_volume->data) ;
                 
-                pirates_add_sphere(&(scene->sphere_array),&(scene->numspheres),pirates_compute_bounding_sphere(triangle,pirates_compute_triangle_bounding_box(triangle))) ;
+                primitive->bounding_volume = primitive->bounding_volume_func(primitive->shape_volume->data) ;
                 
-                i++ ;
+                pirates_compute_scene_bounding_box(scene, primitive->bounding_box) ;
             }
             
-            node = node->after ;
+        } else {
+            
+            pirates_destroy_primitive(primitive) ;
+            
+            deadnode = node ;
         }
         
+        
+        
+        node = RKList_GetNextNode(node) ;
     }
     
-    if ( scene->sphere_array != NULL ) {
-        
-        i = 0 ;
-        
-        while ( i < scene->numspheres ) {
-            
-            pirates_compute_scene_bounding_box(scene, scene->sphere_array[i]->bounding_box) ;
-            
-            i++ ;
-        }
-        
         pirates_createbins(scene) ;
-        
-    }
     
 }
 
