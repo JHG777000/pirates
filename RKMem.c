@@ -196,6 +196,14 @@ void RKList_DeleteList( RKList list ) {
     free(list) ;
 }
 
+void RKList_DeleteAllNodesInList( RKList list ) {
+    
+    while ( list->first != NULL ) {
+        
+        RKList_DeleteNode(list,list->first) ;
+    }
+}
+
 RKList_node RKList_GetNode( RKList list, int index ) {
     
     int i = 0 ;

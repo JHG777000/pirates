@@ -154,7 +154,13 @@ pirates_scene pirates_new_scene( piretes2d_scene scene, double draw_distance, RK
     
     new_scene->box_init = 0 ;
     
-    new_scene->scene_bin = pirates_create_scene_bin(new_scene,sort_min,sort_max,level_max) ;
+    new_scene->sort_min = sort_min ;
+    
+    new_scene->sort_max = sort_max ;
+    
+    new_scene->level_max = level_max ;
+    
+    new_scene->scene_bin = NULL ;
     
     return new_scene ;
 }
@@ -171,29 +177,13 @@ void pirates_change_camera(pirates_scene scene, float x, float y, float z) {
     
 }
 
-void pirates_destroy_sphere_array( pirates_scene scene ) {
-    
-    int i = 0 ;
-    
-    while ( i < scene->numspheres) {
-        
-        free( scene->sphere_array[i]->position ) ;
-        
-        free(scene->sphere_array[i]) ;
-        
-        i++ ;
-    }
-    
-    free(scene->sphere_array) ;
-}
-
-void pirates_destroy_bin_array( pirates_scene scene ) {
+void pirates_destroy_bins( pirates_scene scene ) {
     
     int i = 0 ;
     
     while ( i < scene->scene_bin->num_of_bins_in_scene) {
         
-        if (scene->scene_bin->scene_bin_array[i]->bin_type) free(scene->scene_bin->scene_bin_array[i]->sphere_array) ;
+        if (!scene->scene_bin->scene_bin_array[i]->root) if ( RKList_GetNumOfNodes(scene->scene_bin->scene_bin_array[i]->primitive_list) > 0) RKList_DeleteList(scene->scene_bin->scene_bin_array[i]->primitive_list) ;
         
         free(scene->scene_bin->scene_bin_array[i]->bin_array) ;
         
@@ -213,15 +203,13 @@ void pirates_destroy_scene( pirates_scene scene ) {
     
     pirates_destroymaterials(scene) ;
     
-    pirates_delete_triangle_arrays(scene) ;
+    RKList_DeleteList(scene->primitive_list) ;
     
-    free(scene->geom_data) ;
-    
-    pirates_destroy_sphere_array(scene) ;
-    
-    pirates_destroy_bin_array(scene) ;
+    pirates_destroy_bins(scene) ;
     
     freecam(scene->Camera) ;
+    
+    RKTasks_EndLock(scene->SubLock) ;
     
     free(scene) ;
     
@@ -422,6 +410,8 @@ void pirates_destroy_primitive( pirates_primitive primitive ) {
     
     pirates_destroy_volume(primitive->shape_volume) ;
     
+    free(primitive->primitive_array) ;
+    
     free(primitive) ;
 }
 
@@ -465,9 +455,11 @@ static pirates_bounding_box pirates_triangle_bounding_box_func(void* data) {
     return pirates_compute_triangle_bounding_box(triangle) ;
 }
 
-void pirates_make_triangle_primitive( pirates_scene scene, pirates_volume volume, pirates_bounding_box bounding_box ) {
+void pirates_make_triangle_primitive( pirates_scene scene, pirates_primitive_array primitive_array, pirates_volume volume, pirates_bounding_box bounding_box ) {
     
     pirates_primitive primitive = RKMem_NewMemOfType(pirates_primitive_object) ;
+    
+    primitive->primitive_array = primitive_array ;
     
     primitive->bounding_box = bounding_box ;
     
@@ -488,26 +480,46 @@ void pirates_make_triangle_primitive( pirates_scene scene, pirates_volume volume
     RKTasks_UnLockLock(scene->SubLock) ;
 }
 
-void pirates_add_triangle_array2( pirates_scene scene, pirates_triangles triangles, int numtrigs ) {
+pirates_primitive_array pirates_new_primitive_array( void* primitive_data ) {
+    
+    pirates_primitive_array primitive_array = RKMem_NewMemOfType(void*) ;
+    
+    primitive_array[0] = primitive_data ;
+    
+    return primitive_array ;
+}
+
+void pirates_destroy_primitive_array( pirates_primitive_array primitive_array ) {
+    
+    primitive_array[0] = NULL ;
+}
+
+void pirates_add_triangle_array( pirates_scene scene, pirates_primitive_array primitive_array, int numtrigs ) {
     
     int i = 0 ;
     
     pirates_triangle triangle ;
     
+    if ( primitive_array == NULL ) return ;
+    
+    pirates_triangles triangles = (pirates_triangles)primitive_array[0] ;
+    
     if ( triangles == NULL ) return ;
+    
+    if ( scene->primitive_list == NULL ) scene->primitive_list = RKList_NewList() ;
     
     while ( i < numtrigs ) {
         
         triangle = pr_gettriangle(triangles,i) ;
         
-        pirates_make_triangle_primitive(scene,pirates_new_volume((void*)triangle,pirates_triangle_intersection,pirates_triangle_update_func),pirates_compute_triangle_bounding_box(triangle)) ;
+        pirates_make_triangle_primitive(scene,primitive_array,pirates_new_volume((void*)triangle,pirates_triangle_intersection,pirates_triangle_update_func),pirates_compute_triangle_bounding_box(triangle)) ;
         
         i++ ;
     }
 }
 
 
-pirates_triangle_array_buffer pirates_add_triangle_array( pirates_scene scene, pirates_triangles triangles, int numtrigs ) {
+pirates_triangle_array_buffer pirates_add_triangle_arrayold( pirates_scene scene, pirates_triangles triangles, int numtrigs ) {
     
     if ( scene->geom_data == NULL ) {
         
@@ -543,7 +555,7 @@ pirates_triangle_array_buffer pirates_add_triangle_array( pirates_scene scene, p
     return scene->geom_data->last ;
 }
 
-void pirates_remove_triangle_array( pirates_scene scene, pirates_triangle_array_buffer buffer ) {
+void pirates_remove_triangle_arrayold( pirates_scene scene, pirates_triangle_array_buffer buffer ) {
     
     if ( buffer->before == NULL ) {
        
@@ -584,13 +596,13 @@ void pirates_remove_triangle_array( pirates_scene scene, pirates_triangle_array_
 
 }
 
-void pirates_delete_triangle_arrays( pirates_scene scene ) {
+void pirates_delete_triangle_arraysold( pirates_scene scene ) {
     
     if ( scene->geom_data != NULL ) {
         
      while ( scene->geom_data->triangles != NULL ) { //scene->geom_data's before should always be NULL
         
-        pirates_remove_triangle_array(scene,scene->geom_data) ;
+        //pirates_remove_triangle_array(scene,scene->geom_data) ;
          
      }
         
@@ -783,9 +795,7 @@ void pirates_compute_scene_bounding_box( pirates_scene scene, pirates_bounding_b
 
 void pirates_add_geom_to_bins( pirates_scene scene, pirates_scene_bin scene_bin ) {
     
-    scene_bin->sphere_array = scene->sphere_array ;
-    
-    scene_bin->numspheres = scene->numspheres ;
+    scene_bin->primitive_list = scene->primitive_list ;
     
     scene_bin->bounding_box = scene->bounding_box ;
 }
@@ -811,7 +821,7 @@ void pirates_proc_scene( pirates_scene scene ) {
         
         primitive = (pirates_primitive)RKList_GetData(node) ;
         
-        if ( primitive->shape_volume->data != NULL ) {
+        if ( primitive->primitive_array != NULL ) {
             
             if (primitive->shape_volume->update_func(primitive->shape_volume->data)) {
                 
@@ -848,9 +858,7 @@ pirates_scene_bin pirates_create_scene_bin(pirates_scene scene, int sort_min, in
     
     scene_bin->level_max = level_max ;
     
-    scene_bin->bin_id = 0 ;
-    
-    scene_bin->bin_type = 0 ;
+    scene_bin->root = 1 ;
     
     scene_bin->num_of_bins = 0 ;
     
@@ -862,17 +870,15 @@ pirates_scene_bin pirates_create_scene_bin(pirates_scene scene, int sort_min, in
     
     scene_bin->num_of_bins_in_scene = 0 ;
     
-    scene_bin->sphere_array = scene->sphere_array ;
+    //scene_bin->primitive_list = scene->primitive_list ;
     
-    scene_bin->numspheres = scene->numspheres ;
-    
-    scene_bin->bounding_box = scene->bounding_box ;
+    //scene_bin->bounding_box = scene->bounding_box ;
     
     return scene_bin ;
     
 }
 
-typedef struct { int flag ; pirates_bounding_box bounding_box ; pirates_spheres sphere_array ; int numspheres ; } Group_object ;
+typedef struct { int flag ; pirates_bounding_box bounding_box ; pirates_geom_list primitive_list ; } Group_object ;
 
 typedef Group_object* Group ;
 
@@ -880,9 +886,7 @@ Group NewGroup( pirates_bounding_box box ) {
     
     Group new_group = RKMem_NewMemOfType(Group_object) ;
     
-    new_group->numspheres = 0 ;
-    
-    new_group->sphere_array = NULL ;
+    new_group->primitive_list = RKList_NewList() ;
     
     new_group->flag = 0 ;
     
@@ -891,21 +895,21 @@ Group NewGroup( pirates_bounding_box box ) {
     return new_group ;
 }
 
-void pirates_addSphere_to_Group( pirates_sphere sphere,  Group Group_ ) {
+void pirates_addPrimitive_to_Group( pirates_primitive primitive,  Group Group_ ) {
     
-    pirates_add_sphere(&(Group_->sphere_array), &(Group_->numspheres), sphere) ;
+    RKList_AddToList(Group_->primitive_list, (void*)primitive) ;
     
-    Group_->bounding_box.X += sphere->bounding_box.X ;
+    Group_->bounding_box.X += primitive->bounding_box.X ;
     
-    Group_->bounding_box.x += sphere->bounding_box.x ;
+    Group_->bounding_box.x += primitive->bounding_box.x ;
     
-    Group_->bounding_box.Y += sphere->bounding_box.Y ;
+    Group_->bounding_box.Y += primitive->bounding_box.Y ;
     
-    Group_->bounding_box.y += sphere->bounding_box.y ;
+    Group_->bounding_box.y += primitive->bounding_box.y ;
     
-    Group_->bounding_box.Z += sphere->bounding_box.Z ;
+    Group_->bounding_box.Z += primitive->bounding_box.Z ;
     
-    Group_->bounding_box.z += sphere->bounding_box.z ;
+    Group_->bounding_box.z += primitive->bounding_box.z ;
 }
 
 void pirates_addGroup( Group Group_, Group** Group_array_ptr, int* num_of_Groups ) {
@@ -950,11 +954,11 @@ void pirates_addBin( pirates_bin bin, pirates_bin** bin_array_ptr, int* num_of_b
     
 }
 
-pirates_bin pirates_new_bin( int type, pirates_bin bigger_bin, Group Group_ ) {
+pirates_bin pirates_new_bin( pirates_bin bigger_bin, Group Group_ ) {
     
     pirates_bin new_bin = RKMem_NewMemOfType(pirates_bin_object) ;
     
-    new_bin->bin_type = type ;
+    new_bin->root = 0 ;
     
     new_bin->num_of_bins = 0 ;
     
@@ -962,11 +966,7 @@ pirates_bin pirates_new_bin( int type, pirates_bin bigger_bin, Group Group_ ) {
     
     new_bin->bigger_bin = bigger_bin ;
     
-    new_bin->bin_id = !(bigger_bin->bin_id) ;
-    
-    new_bin->numspheres = Group_->numspheres ;
-    
-    new_bin->sphere_array = Group_->sphere_array ;
+    new_bin->primitive_list = Group_->primitive_list ;
     
     new_bin->bounding_box = Group_->bounding_box ;
     
@@ -975,7 +975,7 @@ pirates_bin pirates_new_bin( int type, pirates_bin bigger_bin, Group Group_ ) {
 
 void pirates_add_bin( Group Group_, pirates_bin bin, pirates_bins* new_bins, int* num_of_new_bins, pirates_scene_bin scene_bin ) {
     
-    pirates_bin new_bin = pirates_new_bin(1,bin,Group_) ;
+    pirates_bin new_bin = pirates_new_bin(bin,Group_) ;
     
     pirates_addBin(new_bin,new_bins,num_of_new_bins) ;
     
@@ -989,9 +989,11 @@ void pirates_bins_good_sort( pirates_bin bin, pirates_bins* new_bins, int* num_o
     
     pirates_bounding_box box = bin->bounding_box ;
     
-    int i = 0 ;
+    pirates_geom_list_node node = NULL ;
     
-    int j = 0 ;
+    pirates_primitive primitive = NULL ;
+    
+    int i = 0 ;
     
     int n = 4 ;
     
@@ -1011,17 +1013,19 @@ void pirates_bins_good_sort( pirates_bin bin, pirates_bins* new_bins, int* num_o
         
         Groups[i] = NewGroup(boxes[i]) ;
         
-        j = 0 ;
+        node = RKList_GetFirstNode(bin->primitive_list) ;
         
-        while ( j < bin->numspheres ) {
+        while ( node != NULL ) {
             
-            if ( CheckXYZ(bin->sphere_array[j]->bounding_box,Groups[i]->bounding_box) ) {
+            primitive = (pirates_primitive)RKList_GetData(node) ;
             
-            //pirates_addSphere_to_Group(bin->sphere_array[j],Groups[i]) ;
-            
+            if ( CheckXYZ(primitive->bounding_box,Groups[i]->bounding_box) ) {
+                
+                pirates_addPrimitive_to_Group(primitive,Groups[i]) ;
+                
             }
             
-            j++ ;
+            node = RKList_GetNextNode(node) ;
         }
         
         pirates_add_bin(Groups[i],bin,new_bins,num_of_new_bins,scene_bin) ;
@@ -1038,6 +1042,8 @@ void pirates_bins_good_sort( pirates_bin bin, pirates_bins* new_bins, int* num_o
         i++ ;
     }
 
+    
+    if (!bin->root) RKList_DeleteAllNodesInList(bin->primitive_list) ;
     
     free(boxes) ;
     
@@ -1064,7 +1070,7 @@ void pirates_makelevels( pirates_bins* level_bins, int* num_of_level_bins, pirat
     
     while ( i < (*num_of_level_bins) ) {
         
-        if ( ((*level_bins)[i]->numspheres > scene_bin->sort_min) && ((*level_bins)[i]->numspheres < scene_bin->sort_max) )
+        if ( ( RKList_GetNumOfNodes((*level_bins)[i]->primitive_list) > scene_bin->sort_min) && (RKList_GetNumOfNodes((*level_bins)[i]->primitive_list) < scene_bin->sort_max) )
             pirates_bins_good_sort((*level_bins)[i],&new_bins,&num_of_new_bins,scene_bin) ;
         
         
@@ -1102,6 +1108,8 @@ void pirates_makebins( pirates_scene_bin scene_bin ) {
 
 void pirates_createbins(pirates_scene scene) {
 
+    scene->scene_bin = pirates_create_scene_bin(scene, scene->sort_min, scene->sort_max, scene->level_max) ;
+    
     pirates_add_geom_to_bins(scene, scene->scene_bin) ;
     
     pirates_makebins(scene->scene_bin) ;
@@ -1348,7 +1356,7 @@ float box_intersection( Ray r, pirates_bin box ) {
 
 pirates_Material pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
 
-    pirates_Material material = NULL ;
+    /*pirates_Material material = NULL ;
     
     pirates_sphere sphere = NULL ;
     
@@ -1417,6 +1425,8 @@ pirates_Material pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
     free(sphere_array) ;
     
     return material ;
+     
+     */ return NULL ;
 }
 
 pirates_Material pirates_get_first_intersection( pirates_scene scene, Ray r ) {

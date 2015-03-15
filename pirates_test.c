@@ -49,55 +49,74 @@ static int RandomNumber( int randmin, int randmax ) {
 
 void pirates_teststuff(codename_scene scene, float MouseX, float MouseY) {
     
+    static pirates_scene scene3d = NULL ;
+    
+    static int count = 0 ;
+    
+    static int init = 0 ;
+    
     RKMath_Vectorit(position, 0.1, 0.1 , -12.0) ;
     
     RKMath_Vectorit(focus, 0.0, 0.0, 0.0) ;
     
-    pirates_scene scene3d = pirates_new_scene(scene, 1000000.0f, position, focus, 1024, 1024, 1, 35, 1) ;
+    if (!init) scene3d = pirates_new_scene(scene, 1000000.0f, position, focus, 1024, 1024, 1, 35, 1) ;
     
     pirates_change_camera(scene3d,0,MouseY/1024,MouseX/10240) ;
     
-    pirates_Material blue = pirates_newmaterial(Colorit(0.0, 1.0, 0.0)) ;
+    static pirates_Material blue ;
     
-    pirates_Material red = pirates_newmaterial(Colorit(1.0, 0.0, 0.0)) ;
+    static pirates_Material red ;
     
-    int blue_id = pirates_addmaterial(scene3d, blue) ;
+    if (!init) blue = pirates_newmaterial(Colorit(0.0, 1.0, 0.0)) ;
     
-    int red_id = pirates_addmaterial(scene3d, red) ;
+    if (!init) red = pirates_newmaterial(Colorit(1.0, 0.0, 0.0)) ;
     
-    float triangle[10] = { 0.0, 0.0, 0.9, 0.35, 0.35, 0.7, -0.35, 0.35, -0.7, red_id  } ;
+    static int blue_id ;
     
-    float triangle2[10] = { 0.0+(MouseX/1024), 0.0, 0.9+(MouseY/1024), 0.35+(MouseX/1024), 0.35, 0.7+(MouseY/1024), -0.35+(MouseX/1024), 0.35, -0.7+(MouseY/1024), blue_id  } ;
+    static int red_id ;
     
-    //float triangle3[10] = { 0.0, 0.0, 0.9, 0.35, 0.35, 0.7, -0.35, 0.35, -0.7, blue_id  } ;
+    if (!init) blue_id = pirates_addmaterial(scene3d, blue) ;
     
-    pirates_add_triangle_array(scene3d, triangle, 1) ;
+    if (!init) red_id = pirates_addmaterial(scene3d, red) ;
     
-    pirates_add_triangle_array(scene3d, triangle2, 1) ;
+    float triangle[11] = { 0.0, 0.0, 0.9, 0.35, 0.35, 0.7, -0.35, 0.35, -0.7, red_id, 0 } ;
     
-    //int i = 0 ;
+    float triangle2[11] = { 0.0+(MouseX/1024), 0.0, 0.9+(MouseY/1024), 0.35+(MouseX/1024), 0.35, 0.7+(MouseY/1024), -0.35+(MouseX/1024), 0.35, -0.7+(MouseY/1024), blue_id, 0  } ;
     
-    //int j = 0 ;
-    /*
-    while ( i < 100 ) {
-        
-        j = RandomNumber(1, 9) ;
-        
-        triangle3[0] += (j/10) ;
-        
-        triangle3[3] += (j/10) ;
-        
-        triangle3[6] += (j/10) ;
-        
-        pirates_add_triangle_array(scene3d, triangle3, 1) ;
-        
-        i++ ;
-    }
-    */
+    static pirates_primitive_array triangle_one ;
+    
+    static pirates_primitive_array triangle_two ;
+    
+    if (!init) triangle_one = pirates_new_primitive_array(triangle) ;
+    
+    if (!init) triangle_two = pirates_new_primitive_array(triangle2) ;
+    
+    if (!init) pirates_add_triangle_array(scene3d, triangle_one, 1) ;
+    
+    if (!init) pirates_add_triangle_array(scene3d, triangle_two, 1) ;
+    
+    if (!init) init++ ;
+    
     pirates_proc_scene(scene3d) ;
     
     pirates_render(scene3d) ;
     
+    if ( count < 100 ) pirates_destroy_bins(scene3d) ;
+    
+    if ( count > 100 ) {
+    
+    triangle_one = NULL ;
+        
+    triangle_two = NULL ;
+       
     pirates_destroy_scene(scene3d) ;
+    
+    count = 0 ;
+        
+    init-- ;
+        
+    }
+    
+    count++ ;
     
 }

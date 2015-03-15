@@ -61,6 +61,8 @@ RKList_node RKList_DeleteNodeAndReturnNextNode( RKList list, RKList_node node ) 
 
 void RKList_DeleteList( RKList list ) ;
 
+void RKList_DeleteAllNodesInList( RKList list ) ;
+
 RKList_node RKList_GetNode( RKList list, int index ) ;
 
 void RKList_DeleteNodeWithIndex( RKList list, int index ) ;
