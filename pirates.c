@@ -827,9 +827,11 @@ void pirates_proc_scene( pirates_scene scene ) {
                 
                 primitive->bounding_box = primitive->bounding_box_func(primitive->shape_volume->data) ;
                 
+                pirates_destroy_volume(primitive->bounding_volume) ;
+                
                 primitive->bounding_volume = primitive->bounding_volume_func(primitive->shape_volume->data) ;
                 
-                pirates_compute_scene_bounding_box(scene, primitive->bounding_box) ;
+                scene->box_init = 0 ;
             }
             
         } else {
@@ -839,12 +841,25 @@ void pirates_proc_scene( pirates_scene scene ) {
             deadnode = node ;
         }
         
-        
-        
         node = RKList_GetNextNode(node) ;
     }
+   
+    if ( !scene->box_init ) {
     
-        pirates_createbins(scene) ;
+      node = RKList_GetFirstNode(scene->primitive_list) ;
+    
+      while ( node != NULL ) {
+        
+          primitive = (pirates_primitive)RKList_GetData(node) ;
+        
+          pirates_compute_scene_bounding_box(scene, primitive->bounding_box) ;
+        
+          node = RKList_GetNextNode(node) ;
+      }
+    
+    }
+    
+    pirates_createbins(scene) ;
     
 }
 

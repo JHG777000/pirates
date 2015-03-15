@@ -79,9 +79,21 @@ void pirates_teststuff(codename_scene scene, float MouseX, float MouseY) {
     
     if (!init) red_id = pirates_addmaterial(scene3d, red) ;
     
-    float triangle[11] = { 0.0, 0.0, 0.9, 0.35, 0.35, 0.7, -0.35, 0.35, -0.7, red_id, 0 } ;
+    static RKMVector triangle ;
     
-    float triangle2[11] = { 0.0+(MouseX/1024), 0.0, 0.9+(MouseY/1024), 0.35+(MouseX/1024), 0.35, 0.7+(MouseY/1024), -0.35+(MouseX/1024), 0.35, -0.7+(MouseY/1024), blue_id, 0  } ;
+    static RKMVector triangle2 ;
+    
+    if (!init)  triangle = RKMath_NewVectorMalloc(11) ;
+    
+    if (!init)  triangle2 = RKMath_NewVectorMalloc(11) ;
+    
+    float data[11] = { 0.0, 0.0, 0.9, 0.35, 0.35, 0.7, -0.35, 0.35, -0.7, red_id, 0 } ;
+    
+    float data2[11] = { 0.0+(MouseX/1024), 0.0, 0.9+(MouseY/1024), 0.35+(MouseX/1024), 0.35, 0.7+(MouseY/1024), -0.35+(MouseX/1024), 0.35, -0.7+(MouseY/1024), blue_id, 1  } ;
+    
+    RKMath_Equal(triangle, data, 11) ;
+    
+    RKMath_Equal(triangle2, data2, 11) ;
     
     static pirates_primitive_array triangle_one ;
     
