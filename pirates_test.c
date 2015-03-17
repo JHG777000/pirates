@@ -103,17 +103,13 @@ void pirates_teststuff(codename_scene scene, float MouseX, float MouseY) {
     
     if (!init) triangle_two = pirates_new_primitive_array(triangle2) ;
     
-    if (!init) pirates_add_triangle_array(scene3d, triangle_one, 1) ;
+    if (!init) pirates_add_triangle_array(scene3d, triangle_one, 1, 1) ;
     
-    if (!init) pirates_add_triangle_array(scene3d, triangle_two, 1) ;
+    if (!init) pirates_add_triangle_array(scene3d, triangle_two, 1, 1) ;
     
     if (!init) init++ ;
     
     if ( count > 10 ) {
-        
-        free(triangle) ;
-        
-        free(triangle2) ;
         
         pirates_destroy_primitive_array(triangle_one) ;
         

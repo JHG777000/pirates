@@ -386,11 +386,13 @@ static int pirates_triangle_update_func(void* data) {
     return retval ;
 }
 
-pirates_volume pirates_new_volume( void* data, pirates_intersection_func_type intersection_func, pirates_update_func_type update_func ) {
+pirates_volume pirates_new_volume( void* data, int can_and_should_delete, pirates_intersection_func_type intersection_func, pirates_update_func_type update_func ) {
     
     pirates_volume volume = RKMem_NewMemOfType(pirates_volume_object) ;
     
     volume->data = data ;
+    
+    volume->can_and_should_delete = can_and_should_delete ;
     
     volume->intersection_func = intersection_func ;
     
@@ -400,6 +402,8 @@ pirates_volume pirates_new_volume( void* data, pirates_intersection_func_type in
 }
 
 void pirates_destroy_volume( pirates_volume volume ) {
+    
+    if (volume->can_and_should_delete) free(volume->data) ;
     
     free(volume) ;
 }
@@ -445,7 +449,7 @@ static pirates_volume pirates_make_bounding_sphere_for_triangle(void* data) {
     
     sphere[3] = r ;
     
-    return pirates_new_volume((void*)sphere,pirates_sphere_intersection,NULL) ;
+    return pirates_new_volume((void*)sphere,1,pirates_sphere_intersection,NULL) ;
 }
 
 static pirates_bounding_box pirates_triangle_bounding_box_func(void* data) {
@@ -494,7 +498,7 @@ void pirates_destroy_primitive_array( pirates_primitive_array primitive_array ) 
     primitive_array[0] = NULL ;
 }
 
-void pirates_add_triangle_array( pirates_scene scene, pirates_primitive_array primitive_array, int numtrigs ) {
+void pirates_add_triangle_array( pirates_scene scene, pirates_primitive_array primitive_array, int numtrigs, int can_and_should_delete ) {
     
     int i = 0 ;
     
@@ -512,7 +516,7 @@ void pirates_add_triangle_array( pirates_scene scene, pirates_primitive_array pr
         
         triangle = pr_gettriangle(triangles,i) ;
         
-        pirates_make_triangle_primitive(scene,primitive_array,pirates_new_volume((void*)triangle,pirates_triangle_intersection,pirates_triangle_update_func),pirates_compute_triangle_bounding_box(triangle)) ;
+        pirates_make_triangle_primitive(scene,primitive_array,pirates_new_volume((void*)triangle,can_and_should_delete,pirates_triangle_intersection,pirates_triangle_update_func),pirates_compute_triangle_bounding_box(triangle)) ;
         
         i++ ;
     }

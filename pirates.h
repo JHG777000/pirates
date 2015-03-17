@@ -114,7 +114,9 @@ typedef double (*pirates_intersection_func_type)(Ray ray, void* data) ;
 
 typedef int (*pirates_update_func_type)(void* data) ;
 
-typedef struct { pirates_intersection_func_type intersection_func ; pirates_update_func_type update_func ; void* data ; } pirates_volume_object ;
+typedef struct { pirates_intersection_func_type intersection_func ; pirates_update_func_type update_func ;
+    
+int can_and_should_delete ; void* data ; } pirates_volume_object ;
 
 typedef pirates_volume_object* pirates_volume ;
 
@@ -150,7 +152,7 @@ typedef pirates_scene_object* pirates_scene ;
 
 pirates_scene pirates_new_scene( piretes2d_scene scene, double draw_distance, RKMVector position, RKMVector focus, int res_x, int res_y, int sort_min, int sort_max, int level_max) ;
 
-void pirates_add_triangle_array( pirates_scene scene, pirates_primitive_array primitive_array, int numtrigs ) ;
+void pirates_add_triangle_array( pirates_scene scene, pirates_primitive_array primitive_array, int numtrigs, int can_and_should_delete ) ;
 
 pirates_Material pirates_newmaterial( raycolor color ) ;
 
