@@ -25,7 +25,9 @@
 
 #define RKMem_AddToArray(array_a,array_b,array_a_size,array_b_size,type) array_a = RKMem_Realloc(array_a,(array_a_size+array_b_size),array_a_size,type,1) ; memcpy(array_a[array_a_size+1],array_b,(array_b_size*sizeof(type)))
 
-void* RKMem_Realloc_Func( void* data, size_t newsize, size_t oldsize, int NULLonError0No1Yes) ;
+void* RKMem_Realloc_Func(void* data, size_t newsize, size_t oldsize, int NULLonError0No1Yes) ;
+
+typedef void* (*RKList_GetDataFromArrayFuncType)(void* array, int index) ;
 
 typedef struct RKList_node_s RKList_node_object ;
 
@@ -37,11 +39,17 @@ typedef RKList_object* RKList ;
 
 RKList RKList_NewList( void ) ;
 
+RKList RKList_NewListFromArray( void* array, RKList_GetDataFromArrayFuncType GetDataFromArrayFunc, int size ) ;
+
 RKList_node RKList_AddToList( RKList list, void* data ) ;
 
 void RKList_AddNodeToList(RKList list, RKList_node node) ;
 
 void RKList_MoveNodeFromListToList(RKList list_a, RKList list_b, RKList_node node) ;
+
+void RKList_CopyList(RKList list_a, RKList list_b) ;
+
+void RKList_CopyToListFromArray(RKList list, void* array, RKList_GetDataFromArrayFuncType GetDataFromArrayFunc, int size) ;
 
 void* RKList_GetData(RKList_node node) ;
 

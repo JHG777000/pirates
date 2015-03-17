@@ -425,7 +425,7 @@ static pirates_volume pirates_make_bounding_sphere_for_triangle(void* data) {
     
     float r = 0 ;
     
-    RKMath_NewVector(sphere, 4) ;
+    RKMVector sphere = RKMath_NewVectorMalloc(4) ;
     
     pirates_triangle triangle = (pirates_triangle)data ;
     
@@ -821,7 +821,7 @@ void pirates_proc_scene( pirates_scene scene ) {
         
         primitive = (pirates_primitive)RKList_GetData(node) ;
         
-        if ( primitive->primitive_array != NULL ) {
+        if ( primitive->primitive_array[0] != NULL ) {
             
             if (primitive->shape_volume->update_func(primitive->shape_volume->data)) {
                 
@@ -838,13 +838,13 @@ void pirates_proc_scene( pirates_scene scene ) {
             
             pirates_destroy_primitive(primitive) ;
             
+            scene->box_init = 0 ;
+            
             deadnode = node ;
         }
         
         node = RKList_GetNextNode(node) ;
     }
-   
-    if ( !scene->box_init ) {
     
       node = RKList_GetFirstNode(scene->primitive_list) ;
     
@@ -856,8 +856,6 @@ void pirates_proc_scene( pirates_scene scene ) {
         
           node = RKList_GetNextNode(node) ;
       }
-    
-    }
     
     pirates_createbins(scene) ;
     
@@ -885,10 +883,6 @@ pirates_scene_bin pirates_create_scene_bin(pirates_scene scene, int sort_min, in
     
     scene_bin->num_of_bins_in_scene = 0 ;
     
-    //scene_bin->primitive_list = scene->primitive_list ;
-    
-    //scene_bin->bounding_box = scene->bounding_box ;
-    
     return scene_bin ;
     
 }
@@ -913,18 +907,6 @@ Group NewGroup( pirates_bounding_box box ) {
 void pirates_addPrimitive_to_Group( pirates_primitive primitive,  Group Group_ ) {
     
     RKList_AddToList(Group_->primitive_list, (void*)primitive) ;
-    
-    Group_->bounding_box.X += primitive->bounding_box.X ;
-    
-    Group_->bounding_box.x += primitive->bounding_box.x ;
-    
-    Group_->bounding_box.Y += primitive->bounding_box.Y ;
-    
-    Group_->bounding_box.y += primitive->bounding_box.y ;
-    
-    Group_->bounding_box.Z += primitive->bounding_box.Z ;
-    
-    Group_->bounding_box.z += primitive->bounding_box.z ;
 }
 
 void pirates_addGroup( Group Group_, Group** Group_array_ptr, int* num_of_Groups ) {
@@ -1243,100 +1225,12 @@ void pirates_addfloat( float float_, float** float_array_ptr, int* num_of_floats
     
 }
 
-pirates_sphere pirates_find_sphere(pirates_scene scene, Ray r, pirates_spheres spheres, int numspheres) {
-    
-    int i = 0 ;
-    
-    int hit = -1 ;
-    
-    double t = 0 ;
-    
-    double trig_test = scene->draw_distance ;
-    
-    double sphere_test = scene->draw_distance ;
-    
-    float* sphere_array = NULL ;
-    
-    int num_of_hits = 0 ;
-    
-    while (i < numspheres) {
-        
-        t = Sphere_intersection(r, spheres[i]) ;
-        
-        if (t) {
-            
-            pirates_addfloat(i,&sphere_array,&num_of_hits) ;
-    
-        }
-        
-        i++ ;
-    }
-    
-    if (!num_of_hits) {
-        
-        free(sphere_array) ;
-        
-        return NULL ;
-    
-    }
-    
-    i = 0 ;
-    
-    int hit2 = -1 ;
-    
-    pirates_triangle triangle = NULL ;
-    
-    RKMVector vert1 = NULL ;
-    
-    RKMVector vert2 = NULL ;
-    
-    RKMVector vert3 = NULL ;
-    
-    while ( i < num_of_hits ) {
-    
-    hit = (int) sphere_array[i] ;
-        
-    triangle = spheres[hit]->triangle ;
-    
-    vert1 = &(triangle[pr_V1X]) ;
-    
-    vert2 = &(triangle[pr_V2X]) ;
-    
-    vert3 = &(triangle[pr_V3X]) ;
-    
-    t = Trig_intersection(r,vert1,vert2,vert3) ;
-    
-    if ((t) && (0 < t < trig_test) ) {
-        
-        trig_test = t ;
-        
-        hit2 = i ;
-    }
-        i++ ;
-    
-    }
-    
-    hit = -1 ;
-    
-    if (!(hit2+1)) return NULL ;
-    
-    hit = (int) sphere_array[hit2] ;
-    
-    free(sphere_array) ;
-    
-    spheres[hit]->t = t ;
-    
-    if ((hit+1)) return spheres[hit] ;
-    
-    return NULL ;
-}
-
 float fracf(float x) {
     
     return x - floorf(x) ;
 }
 
-float box_intersection( Ray r, pirates_bin box ) {
+float bin_intersection( Ray r, pirates_bin box ) {
     
     RKMath_NewVector(tmin, 3) ;
     
@@ -1369,82 +1263,147 @@ float box_intersection( Ray r, pirates_bin box ) {
 }
 
 
-pirates_Material pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
+typedef struct { pirates_Material material ; double t ; } hitobj_object ;
 
-    /*pirates_Material material = NULL ;
+typedef hitobj_object* hitobj ;
+
+hitobj pirates_find_hit(pirates_scene scene, Ray r, pirates_geom_list primitive_list, hitobj hit) {
     
-    pirates_sphere sphere = NULL ;
+    double draw_distance = scene->draw_distance ;
     
-    pirates_bins bin_array = NULL ;
+    double t = 0 ;
     
-    int num_of_bins = 0 ;
+    pirates_primitive primitive ;
     
-    pirates_spheres sphere_array = NULL ;
+    pirates_geom_list_node primitive_node ;
     
-    int numsphers = 0 ;
+    primitive_node = RKList_GetFirstNode(primitive_list) ;
+    
+    while ( primitive_node != NULL ) {
+    
+        primitive = (pirates_primitive)RKList_GetData(primitive_node) ;
+        
+        t = primitive->shape_volume->intersection_func(r,primitive->shape_volume->data) ;
+        
+        if ((t) && (0 < t < draw_distance) ) {
+        
+          draw_distance = t ;
+            
+          hit->material = pirates_get_material(scene, (pirates_triangle)primitive->shape_volume->data);
+            
+          hit->t = t ;
+        
+        }
+    
+        primitive_node = RKList_GetNextNode(primitive_node) ;
+        
+    }
+    
+    return hit ;
+}
+
+static void* BinArrayGetData(void* array, int index) {
+    
+    pirates_bins bins = (pirates_bins)array ;
+    
+    return (void*)bins[index] ;
+}
+
+hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
+
+    pirates_geom_list primitive_list = NULL ;
+    
+    pirates_geom_list bin_list = NULL ;
+    
+    pirates_geom_list_node primitive_node ;
+    
+    pirates_Material material = NULL ;
+    
+    pirates_primitive primitive ;
+    
+    pirates_bin bin ;
     
     material = pirates_newmaterial(Colorit(0.0, 0.0, 0.0)) ;
     
+    hitobj hit = RKMem_NewMemOfType(hitobj_object) ;
+    
+    hit->material = NULL ;
+    
+    hit->t = 0 ;
+    
     pirates_scene_bin scene_bin = scene->scene_bin ;
     
-    if (box_intersection(r,(pirates_bin)scene_bin)) {
+    int i = 0 ;
+    
+    if (bin_intersection(r,(pirates_bin)scene_bin)) {
+        
+        bin_list = RKList_NewListFromArray(scene_bin->bin_array, BinArrayGetData, scene_bin->num_of_bins) ;
+        
+        primitive_list = RKList_NewList() ;
         
         material->color = Color_add(material->color, Colorit(0.2, 0.2, 0.2)) ;
         
-        numsphers = scene_bin->numspheres ;
-        
-        sphere_array = RKMem_CArray(numsphers, pirates_sphere) ;
-        
-        memcpy(sphere_array, scene_bin->sphere_array, (numsphers * sizeof(pirates_sphere))) ;
-        
-        num_of_bins = scene_bin->num_of_bins ;
-        
-        bin_array = RKMem_CArray(num_of_bins, pirates_bin) ;
-        
-        memcpy(bin_array, scene_bin->bin_array, (num_of_bins * sizeof(pirates_bin))) ;
-        
-        int i = 0 ;
-        
-        while ( i < num_of_bins ) {
-           
-            if (box_intersection(r,bin_array[i])) {
+        while ( RKList_GetFirstNode(bin_list) != NULL ) {
             
-                material->color = Color_add(material->color, Colorit(0.0, 0.0, 0.2)) ;
-                
-             if ( bin_array[i]->num_of_bins > 0 ) {
-                
-                 RKMem_AddToArray(bin_array,bin_array[i]->bin_array,num_of_bins,bin_array[i]->num_of_bins,pirates_bin) ;
-                 
-                 num_of_bins += bin_array[i]->num_of_bins ;
-             }
+            bin = (pirates_bin)RKList_GetData(RKList_GetFirstNode(bin_list)) ;
             
-             if ( bin_array[i]->numspheres > 0 ) {
+            if ( bin_intersection(r,bin) ) {
+                
+            material->color = Color_add(material->color, Colorit(0.0, 0.0, 0.2)) ;
+                
+            if ( bin->num_of_bins > 0 ) {
+                
+                i = 0 ;
+                
+                while ( i < bin->num_of_bins ) {
+                        
+                        RKList_AddToList(bin_list, (void*)bin->bin_array[i]) ;
                     
-                 RKMem_AddToArray(sphere_array,bin_array[i]->sphere_array,numsphers,bin_array[i]->numspheres,pirates_sphere) ;
+                    i++ ;
+                }
+                
+            } else {
+                
+                primitive_node = RKList_GetFirstNode(bin->primitive_list) ;
+                
+                while (primitive_node != NULL) {
                     
-                 numsphers += bin_array[i]->numspheres ;
-             }
+                    primitive = (pirates_primitive)RKList_GetData(primitive_node) ;
+                    
+                    if ( primitive->bounding_volume->intersection_func(r,primitive->bounding_volume->data) )
+                        
+                        RKList_AddNodeToList(primitive_list, primitive_node) ;
+                    
+                    primitive_node = RKList_GetNextNode(primitive_node) ;
+                }
+
+            }
                 
             }
             
-            i++ ;
+            RKList_DeleteNode(bin_list, RKList_GetFirstNode(bin_list)) ;
         }
         
-       sphere = pirates_find_sphere(scene,r,sphere_array,numsphers) ;
+        hit = pirates_find_hit(scene,r,primitive_list,hit) ;
+            
+        if (hit->material != NULL) {
+                
+         material->color = Color_add(material->color, hit->material->color) ;
+            
+        }
         
-       if (sphere != NULL) material->color = Color_add(material->color, pirates_get_material(scene, sphere->triangle)->color) ;
+        RKList_DeleteList(bin_list) ;
+        
+        RKList_DeleteList(primitive_list) ;
     }
     
-    free(bin_array) ;
+    hit->material = material ;
     
-    free(sphere_array) ;
+    return hit ;
     
-    return material ;
-     
-     */ return NULL ;
 }
 
-pirates_Material pirates_get_first_intersection( pirates_scene scene, Ray r ) {
+hitobj pirates_get_first_intersection( pirates_scene scene, Ray r ) {
     
      return pirates_find_object_via_bins(scene,r) ;
 }
@@ -1458,13 +1417,15 @@ raycolor pirates_ray_cast_func(Ray r, pirates_scene scene) {
     
      raycolor fincolor = Colorthat(0) ;
     
-     pirates_Material sphere = pirates_get_first_intersection( scene, r ) ;
+     hitobj hit = pirates_get_first_intersection( scene, r ) ;
     
-     if (sphere == NULL) return fincolor ;
+     if (hit == NULL) return fincolor ;
     
-     fincolor = Color_add(fincolor, sphere->color) ;
+     fincolor = Color_add(fincolor, hit->material->color) ;
     
-     free(sphere) ;
+     free(hit->material) ;
+    
+     free(hit) ;
     
      return fincolor ;
 }

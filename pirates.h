@@ -54,7 +54,7 @@ typedef RKMVector pirates_triangle ; //11-Vector
 
 typedef RKMVector pirates_triangles ; //N-Vector
 
-#define pr_gettriangle(pirates_triangles,n) (&(pirates_triangles[n]))
+#define pr_gettriangle(pirates_triangles,n) (&(pirates_triangles[n*11]))
 
 #define pr_V1X 0
 
@@ -177,5 +177,7 @@ void pirates_destroy_bins( pirates_scene scene ) ;
 pirates_primitive_array pirates_new_primitive_array( void* primitive_data ) ;
 
 pirates_scene_bin pirates_create_scene_bin(pirates_scene scene, int sort_min, int sort_max, int level_max) ;
+
+void pirates_destroy_primitive_array( pirates_primitive_array primitive_array ) ;
 
 #endif /* defined(__pirates__pirates__) */

@@ -109,17 +109,24 @@ void pirates_teststuff(codename_scene scene, float MouseX, float MouseY) {
     
     if (!init) init++ ;
     
+    if ( count > 10 ) {
+        
+        free(triangle) ;
+        
+        free(triangle2) ;
+        
+        pirates_destroy_primitive_array(triangle_one) ;
+        
+        pirates_destroy_primitive_array(triangle_two) ;
+    }
+    
     pirates_proc_scene(scene3d) ;
     
     pirates_render(scene3d) ;
     
-    if ( count < 100 ) pirates_destroy_bins(scene3d) ;
+    if ( count < 10 ) pirates_destroy_bins(scene3d) ;
     
-    if ( count > 100 ) {
-    
-    triangle_one = NULL ;
-        
-    triangle_two = NULL ;
+    if ( count > 10 ) {
        
     pirates_destroy_scene(scene3d) ;
     

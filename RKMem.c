@@ -21,7 +21,7 @@
 
  struct RKList_object_s { int num_of_nodes ; RKList_node first ; RKList_node last ; } ;
 
- void* RKMem_Realloc_Func( void* data, size_t newsize, size_t oldsize, int NULLonError0No1Yes) {
+ void* RKMem_Realloc_Func(void* data, size_t newsize, size_t oldsize, int NULLonError0No1Yes) {
     
     void* newdata ;
     
@@ -64,6 +64,15 @@ RKList RKList_NewList( void ) {
 
 }
 
+RKList RKList_NewListFromArray( void* array, RKList_GetDataFromArrayFuncType GetDataFromArrayFunc, int size ) {
+    
+    RKList newlist = RKList_NewList() ;
+    
+    RKList_CopyToListFromArray(newlist, array, GetDataFromArrayFunc, size) ;
+    
+    return newlist ;
+}
+
 RKList_node RKList_AddToList( RKList list, void* data ) {
     
     if ( list->num_of_nodes == 0 ) {
@@ -104,6 +113,35 @@ void RKList_MoveNodeFromListToList(RKList list_a, RKList list_b, RKList_node nod
     RKList_AddNodeToList(list_b,node) ;
     
     RKList_DeleteNode(list_a, node) ;
+}
+
+void RKList_CopyList(RKList list_a, RKList list_b) {
+    
+    RKList_node node = RKList_GetFirstNode(list_b) ;
+    
+    while ( node != NULL ) {
+        
+        RKList_AddNodeToList(list_a, node) ;
+        
+        node = RKList_GetNextNode(node) ;
+    }
+}
+
+void RKList_CopyToListFromArray(RKList list, void* array, RKList_GetDataFromArrayFuncType GetDataFromArrayFunc, int size) {
+    
+    void* data = NULL ;
+    
+    int i = 0 ;
+    
+    while ( i < size ) {
+        
+        data = GetDataFromArrayFunc(array,i) ;
+        
+        RKList_AddToList(list, data) ;
+        
+        i++ ;
+    }
+
 }
 
 void* RKList_GetData(RKList_node node) {
