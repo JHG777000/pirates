@@ -1042,7 +1042,6 @@ void pirates_bins_good_sort( pirates_bin bin, pirates_bins* new_bins, int* num_o
         
         i++ ;
     }
-
     
     if (!bin->root) RKList_DeleteAllNodesInList(bin->primitive_list) ;
     
