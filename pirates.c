@@ -183,7 +183,7 @@ void pirates_destroy_bins( pirates_scene scene ) {
     
     while ( i < scene->scene_bin->num_of_bins_in_scene) {
         
-        if (!scene->scene_bin->scene_bin_array[i]->root) if ( RKList_GetNumOfNodes(scene->scene_bin->scene_bin_array[i]->primitive_list) > 0) RKList_DeleteList(scene->scene_bin->scene_bin_array[i]->primitive_list) ;
+        if (!scene->scene_bin->scene_bin_array[i]->root) RKList_DeleteList(scene->scene_bin->scene_bin_array[i]->primitive_list) ;
         
         free(scene->scene_bin->scene_bin_array[i]->bin_array) ;
         
@@ -955,7 +955,7 @@ void pirates_addBin( pirates_bin bin, pirates_bin** bin_array_ptr, int* num_of_b
     
 }
 
-pirates_bin pirates_new_bin( pirates_bin bigger_bin, Group Group_ ) {
+pirates_bin pirates_new_bin( pirates_bin bigger_bin, Group Group_, raycolor bin_color ) {
     
     pirates_bin new_bin = RKMem_NewMemOfType(pirates_bin_object) ;
     
@@ -964,6 +964,8 @@ pirates_bin pirates_new_bin( pirates_bin bigger_bin, Group Group_ ) {
     new_bin->num_of_bins = 0 ;
     
     new_bin->bin_array = NULL ;
+    
+    new_bin->color = bin_color ;
     
     new_bin->bigger_bin = bigger_bin ;
     
@@ -974,9 +976,9 @@ pirates_bin pirates_new_bin( pirates_bin bigger_bin, Group Group_ ) {
     return new_bin ;
 }
 
-void pirates_add_bin( Group Group_, pirates_bin bin, pirates_bins* new_bins, int* num_of_new_bins, pirates_scene_bin scene_bin ) {
+void pirates_add_bin( Group Group_, raycolor bin_color, pirates_bin bin, pirates_bins* new_bins, int* num_of_new_bins, pirates_scene_bin scene_bin ) {
     
-    pirates_bin new_bin = pirates_new_bin(bin,Group_) ;
+    pirates_bin new_bin = pirates_new_bin(bin,Group_,bin_color) ;
     
     pirates_addBin(new_bin,new_bins,num_of_new_bins) ;
     
@@ -996,47 +998,79 @@ void pirates_bins_good_sort( pirates_bin bin, pirates_bins* new_bins, int* num_o
     
     int i = 0 ;
     
-    int n = 4 ;
+    int j = 0 ;
     
-    float box_xval = box.x ;
+    int k = 0 ;
     
-    pirates_bounding_box* boxes = RKMem_CArray(n, pirates_bounding_box) ;
+    int n0 = 2 ;
     
-    Group* Groups = RKMem_CArray(n,Group) ;
+    int n1 = 2 ;
     
-    while ( i < n ) {
+    int n2 = 2 ;
+    
+    pirates_bounding_box* boxes = RKMem_CArray(n0 * n1 * n2, pirates_bounding_box) ;
+    
+    Group* Groups = RKMem_CArray(n0 * n1 * n2,Group) ;
+    
+    int index = 0 ;
+    
+    while ( i < n0 ) {
         
-        boxes[i] = box ;
+        j = 0 ;
         
-        boxes[i].x = box_xval ;
-        
-        box_xval = boxes[i].X = ((box.X) / n) * (i+1) ;
-        
-        Groups[i] = NewGroup(boxes[i]) ;
-        
-        node = RKList_GetFirstNode(bin->primitive_list) ;
-        
-        while ( node != NULL ) {
+        while ( j < n1 ) {
             
-            primitive = (pirates_primitive)RKList_GetData(node) ;
+            k = 0 ;
             
-            if ( CheckXYZ(primitive->bounding_box,Groups[i]->bounding_box) ) {
+            while ( k < n2 ) {
                 
-                pirates_addPrimitive_to_Group(primitive,Groups[i]) ;
+                if ( index >= (n0 * n1 * n2) ) index = 0 ; ;
                 
+                boxes[index].x = ((i*box.X) + box.x) ;
+                
+                boxes[index].X = ((box.X) * n0)  ;
+                
+                boxes[index].y = ((j*box.Y) + box.y) ;
+                
+                boxes[index].Y = ((box.Y) * n1)  ;
+                
+                boxes[index].z = ((k*box.Z) + box.z) ;
+                
+                boxes[index].Z = ((box.Z) * n2)  ;
+                
+                Groups[index] = NewGroup(boxes[index]) ;
+                
+                node = RKList_GetFirstNode(bin->primitive_list) ;
+                
+                while ( node != NULL ) {
+                    
+                    primitive = (pirates_primitive)RKList_GetData(node) ;
+                    
+                    if ( CheckXYZ(primitive->bounding_box,Groups[index]->bounding_box) ) {
+                        
+                        pirates_addPrimitive_to_Group(primitive,Groups[index]) ;
+                        
+                    }
+                    
+                    node = RKList_GetNextNode(node) ;
+                }
+                
+                pirates_add_bin(Groups[index],Colorit(i*0.2, j*0.2, k*0.2),bin,new_bins,num_of_new_bins,scene_bin) ;
+                
+                k++ ;
+                
+                index++ ;
             }
             
-            node = RKList_GetNextNode(node) ;
+            j++ ;
         }
-        
-        pirates_add_bin(Groups[i],bin,new_bins,num_of_new_bins,scene_bin) ;
         
         i++ ;
     }
     
     i = 0 ;
     
-    while ( i < n ) {
+    while ( i < (n0 * n1 * n2) ) {
         
         free(Groups[i]) ;
         
@@ -1352,7 +1386,7 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
             
             if ( bin_intersection(r,bin) ) {
                 
-            material->color = Color_add(material->color, Colorit(0.0, 0.0, 0.2)) ;
+            material->color = Color_add(material->color, bin->color) ;
                 
             if ( bin->num_of_bins > 0 ) {
                 
