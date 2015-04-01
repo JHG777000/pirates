@@ -88,9 +88,17 @@ raycolor Colorin(raypixel_ref color) {
     
 }
 
-raypixel_ref Colorout(raycolor color) {
+IDKColor Colorout(raycolor color) {
     
-    return codename_NewColorObject((cn_RGBcolor)(color.r * 255), (cn_RGBcolor)(color.b * 255), (cn_RGBcolor)(color.g * 255)) ;
+    IDKColor outcolor ;
+    
+    outcolor.red = color.r ;
+    
+    outcolor.blue = color.b ;
+    
+    outcolor.green = color.g ;
+    
+    return outcolor ;
 }
 
 raycolor Color_add(raycolor color_a, raycolor color_b) {
@@ -122,13 +130,15 @@ raycolor Color_clamp(raycolor color) {
     return color ;
 }
 
-pirates_scene pirates_new_scene( piretes2d_scene scene, double draw_distance, RKMVector position, RKMVector focus, int res_x, int res_y, int sort_min, int sort_max, int level_max) {
+pirates_scene pirates_new_scene( piretes2d_scene scene, int debug, double draw_distance, RKMVector position, RKMVector focus, int res_x, int res_y, int sort_min, int sort_max, int level_max) {
     
     framcount++ ;
     
     pirates_scene new_scene = RKMem_NewMemOfType(pirates_scene_object) ;
     
-    new_scene->scene = scene ;
+    new_scene->scene2d = scene ;
+    
+    new_scene->debug = debug ;
     
     new_scene->draw_distance = draw_distance ;
     
@@ -151,6 +161,8 @@ pirates_scene pirates_new_scene( piretes2d_scene scene, double draw_distance, RK
     new_scene->primitive_list = NULL ;
     
     RKTasks_StartLock(new_scene->SubLock) ;
+    
+    new_scene->TaskGroup = NULL ;
     
     new_scene->box_init = 0 ;
     
@@ -208,6 +220,8 @@ void pirates_destroy_scene( pirates_scene scene ) {
     pirates_destroy_bins(scene) ;
     
     freecam(scene->Camera) ;
+    
+    if ( scene->TaskGroup != NULL ) RKTasks_KillTaskGroup(scene->TaskGroup) ;
     
     RKTasks_EndLock(scene->SubLock) ;
     
@@ -1028,15 +1042,15 @@ void pirates_bins_good_sort( pirates_bin bin, pirates_bins* new_bins, int* num_o
                 
                 boxes[index].x = ((i*box.X) + box.x) ;
                 
-                boxes[index].X = ((box.X) * n0)  ;
+                boxes[index].X = ((box.X) * (1))  ;
                 
                 boxes[index].y = ((j*box.Y) + box.y) ;
                 
-                boxes[index].Y = ((box.Y) * n1)  ;
+                boxes[index].Y = ((box.Y) * (1))  ;
                 
                 boxes[index].z = ((k*box.Z) + box.z) ;
                 
-                boxes[index].Z = ((box.Z) * n2)  ;
+                boxes[index].Z = ((box.Z) * (1))  ;
                 
                 Groups[index] = NewGroup(boxes[index]) ;
                 
@@ -1378,7 +1392,7 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
         
         primitive_list = RKList_NewList() ;
         
-        material->color = Color_add(material->color, Colorit(0.2, 0.2, 0.2)) ;
+        if (scene->debug) material->color = Color_add(material->color, Colorit(0.2, 0.2, 0.2)) ;
         
         while ( RKList_GetFirstNode(bin_list) != NULL ) {
             
@@ -1386,7 +1400,7 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
             
             if ( bin_intersection(r,bin) ) {
                 
-            material->color = Color_add(material->color, bin->color) ;
+            if (scene->debug) material->color = Color_add(material->color, bin->color) ;
                 
             if ( bin->num_of_bins > 0 ) {
                 
@@ -1467,24 +1481,88 @@ raycolor pirates_ray_cast_func(Ray r, pirates_scene scene) {
      return fincolor ;
 }
 
+static void xytest( int* x, int* y, int* pixel, int max_x, int max_y ) {
+    
+    int max = ( max_x * max_y ) ;
+    
+    if ( (*pixel) >= max ) {
+     
+        (*pixel) = -1 ;
+        
+        return ;
+    }
+    
+    (*x) = (*pixel) ;
+    
+    if ((*x) >= max_x) {
+        
+        (*y) = (*x) / max_x ;
+        
+        (*x) = (*x) - (max_x * (*y)) ;
+    }
+}
+
+RKTasks_CreateTask(pirates_render_task, pirates_scene scene ; int num_of_tasks ; ,
+      
+    int x = 0 ;
+                   
+    int y = 0 ;
+                   
+    int pixel = 0 ;
+                   
+    pixel = RKTasks_GetTaskID(ThisTask) ;
+                   
+    while ( 1 ) {
+                   
+     xytest(&(x),&(y),&(pixel),RKTArgs->scene->res_x, RKTArgs->scene->res_y) ;
+     
+     if (pixel < 0) break ;
+        
+     IDK_SetColor(RKTArgs->scene->scene2d, x, y, Colorout(Color_clamp( pirates_ray_cast_func(CastRay(RKTArgs->scene, RKTArgs->scene->Camera, x, y),RKTArgs->scene)))) ;
+         
+     pixel += RKTArgs->num_of_tasks ;
+                       
+    }
+) ;
+
 void pirates_render(pirates_scene scene) {
     
     int i = 0 ;
     
-    int j = 0 ;
+    int num_of_tasks = 1000 ;
     
-    while (j < scene->res_y) {
-        i = 0 ;
+    RKTasks_ThreadGroup ThreadGroup = IDK_GetThreads(scene->scene2d) ;
+    
+    if ( scene->TaskGroup == NULL ) {
+    
+    scene->TaskGroup = RKTasks_NewTaskGroup() ;
+    
+    RKTasks_BindTaskGroupToThreadGroup(scene->TaskGroup, ThreadGroup) ;
+    
+    RKTasks_RunThreadGroup(ThreadGroup) ;
         
-        while (i < scene->res_x) {
+    RKTasks_Args(pirates_render_task) ;
+        
+        while (i < num_of_tasks) {
             
-            cnpoint_SetColor_and_free(scene->scene, i, j, Colorout(Color_clamp( pirates_ray_cast_func(CastRay(scene, scene->Camera, i, j),scene)))) ;
+            RKTasks_UseArgs(pirates_render_task) ;
+            
+            pirates_render_task_Args->scene = scene ;
+            
+            pirates_render_task_Args->num_of_tasks = num_of_tasks ;
+            
+            RKTasks_AddTask(scene->TaskGroup, pirates_render_task, pirates_render_task_Args) ;
             
             i++ ;
         }
         
-        j++ ;
+        
+    } else {
+        
+        RKTasks_BindTaskGroupToThreadGroup(scene->TaskGroup, ThreadGroup) ;
+        
+        RKTasks_UseTaskGroup(scene->TaskGroup) ;
+        
+        RKTasks_WaitForTasksToBeDone(scene->TaskGroup) ;
     }
-    
-   
 }

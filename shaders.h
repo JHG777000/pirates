@@ -11,8 +11,8 @@
 
 #include "sourceUtil.h"
 
-GLuint BuildSahder(demoSource* vertexSource, demoSource* fragmentSource) ;
-void EndOfSahders(GLuint prgName) ;
+GLuint BuildSahder(demoSource* vertexSource, demoSource* fragmentSource);
+void EndOfSahders(GLuint prgName);
 
 
 

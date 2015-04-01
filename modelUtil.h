@@ -48,7 +48,7 @@
 #ifndef __MODEL_UTIL_H__
 #define __MODEL_UTIL_H__
 
-#include "GLBase.h"
+#include "glUtil.h"
 
 typedef struct demoModelRec
 {

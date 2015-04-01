@@ -13,14 +13,14 @@
 #include "RKMem.h"
 #include "RKMath.h"
 #include "RKTasks.h"
-#include "codename.h"
+#include "IDK.h"
 
 //Color
 typedef codename_pixelcolor raypixel_ref ;
 typedef struct {float r ; float b ; float g ;} raycolor ;
 raycolor Colorit(float red, float blue, float green) ;
 raycolor Colorin(raypixel_ref color) ;
-raypixel_ref Colorout(raycolor color) ;
+IDKColor Colorout(raycolor color) ;
 raycolor Color_add(raycolor color_a, raycolor color_b) ;
 raycolor Color_mul(raycolor color_a, raycolor color_b) ;
 raycolor Color_clamp(raycolor color) ;
@@ -40,7 +40,7 @@ void freecam( Raycam cam ) ;
 Ray CastRay(struct pirates_scene_s* scene, Raycam raycam, float x, float y) ;
 
 
-typedef codename_scene piretes2d_scene ;
+typedef IDKDrawArea piretes2d_scene ;
 
 typedef struct { raycolor color ; } pirates_Material_object ;
 
@@ -144,7 +144,7 @@ typedef pirates_triangle_array_buffer pirates_geom_data ;
 
 typedef struct pirates_scene_s {
     
-piretes2d_scene scene ; Raycam Camera ;
+int debug ; RKTasks_TaskGroup TaskGroup ; piretes2d_scene scene2d ; Raycam Camera ;
     
 pirates_Materials materials ; int num_of_materials ; pirates_geom_data geom_data ; int res_x ; int res_y ;
     
@@ -154,7 +154,7 @@ pirates_spheres sphere_array ; int numspheres ; pirates_geom_list primitive_list
 
 typedef pirates_scene_object* pirates_scene ;
 
-pirates_scene pirates_new_scene( piretes2d_scene scene, double draw_distance, RKMVector position, RKMVector focus, int res_x, int res_y, int sort_min, int sort_max, int level_max) ;
+pirates_scene pirates_new_scene( piretes2d_scene scene, int debug, double draw_distance, RKMVector position, RKMVector focus, int res_x, int res_y, int sort_min, int sort_max, int level_max) ;
 
 void pirates_add_triangle_array( pirates_scene scene, pirates_primitive_array primitive_array, int numtrigs, int can_and_should_delete ) ;
 

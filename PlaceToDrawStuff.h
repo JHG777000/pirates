@@ -8,12 +8,6 @@
 
 #ifndef MacGLEssentials_PlaceToDrawStuff_h
 #define MacGLEssentials_PlaceToDrawStuff_h
-#include "codename.h"
-#include "codename2D.h"
-int MyDrawFunc(codename_pixelscene pixelscene) ;
-int MyDrawFuntion( codename2D_Canvus MainCanvus ) ;
-void theMouse( float x, float y ) ;
-int GetdoDisplayNeedUpdate(void) ;
-void SetDisplayNeedsToUpdate(void) ;
-//float random_uniform(void) ;
+#include "IDK.h"
+void MyDrawArea( IDKDrawArea Area ) ;
 #endif

@@ -10,44 +10,7 @@
 #include <stdlib.h>
 #include "pirates.h"
 
-static int RandomNumber( int randmin, int randmax ) {
-    
-    static long state = 0 ;
-    
-    static int init = 0 ;
-    
-    int randval = 0 ;
-    
-    if ( randmax == -1 ) init = 0 ;
-    
-    randmax++ ;
-    
-    if ( randmax <= 0 ) randmax = 1 ;
-    
-    if (!init) {
-        
-        state = (unsigned)time(NULL) ;
-        
-        init = 1 ;
-    }
-    
-    state ^= (state << 21) ;
-    
-    state ^= (state >> 35) ;
-    
-    state ^= (state << 4) ;
-    
-    randval = (int) state % randmax ;
-    
-    randval = (randval < 0) ? -randval : randval ;
-    
-    randval = (randval < randmin) ? RandomNumber(randmin, randmax) : randval ;
-    
-    return  randval ;
-    
-}
-
-void pirates_teststuff(codename_scene scene, float MouseX, float MouseY) {
+void pirates_teststuff(IDKDrawArea Area) {
     
     static pirates_scene scene3d = NULL ;
     
@@ -59,9 +22,23 @@ void pirates_teststuff(codename_scene scene, float MouseX, float MouseY) {
     
     RKMath_Vectorit(focus, 0.0, 0.0, 0.0) ;
     
-    if (!init) scene3d = pirates_new_scene(scene, 1000000.0f, position, focus, 1024, 1024, 1, 35, 1) ;
+    if (!init) scene3d = pirates_new_scene(Area, 0, 1000000.0f, position, focus, 512, 512, 1, 35, 1) ;
     
-    pirates_change_camera(scene3d,0,MouseY/1024,MouseX/10240) ;
+    static float xpos, ypos, zpos = 0 ;
+    
+    if ( IDK_GetKey(w_key) ) zpos += 0.01 ;
+    
+    if ( IDK_GetKey(s_key) ) zpos -= 0.01 ;
+    
+    if ( IDK_GetKey(a_key) ) xpos -= 0.01 ;
+    
+    if ( IDK_GetKey(d_key) ) xpos += 0.01 ;
+    
+    if ( IDK_GetLeftMouseButton() ) ypos -= 0.01 ;
+    
+    if ( IDK_GetRightMouseButton() ) ypos += 0.01 ;
+    
+    pirates_change_camera(scene3d,xpos,ypos,zpos) ;
     
     static pirates_Material blue ;
     
@@ -87,9 +64,23 @@ void pirates_teststuff(codename_scene scene, float MouseX, float MouseY) {
     
     if (!init)  triangle2 = RKMath_NewVectorMalloc(11) ;
     
-    float data[11] = { 0.0, 0.0, 0.9, 0.35, 0.35, 0.7, -0.35, 0.35, -0.7, red_id, 0 } ;
+    static float xpos2, ypos2, zpos2 = 0 ;
     
-    float data2[11] = { 0.0+(MouseX/1024), 0.0, 0.9+(MouseY/1024), 0.35+(MouseX/1024), 0.35, 0.7+(MouseY/1024), -0.35+(MouseX/1024), 0.35, -0.7+(MouseY/1024), blue_id, 1  } ;
+    if ( IDK_GetKey(up_key) ) ypos2 += 0.01 ;
+    
+    if ( IDK_GetKey(down_key) ) ypos2 -= 0.01 ;
+    
+    if ( IDK_GetKey(left_key) ) xpos2 -= 0.01 ;
+    
+    if ( IDK_GetKey(right_key) ) xpos2 += 0.01 ;
+
+    //if ( IDK_GetLeftMouseButton() ) ypos2 -= 0.01 ;
+    
+    //if ( IDK_GetRightMouseButton() ) ypos2 += 0.01 ;
+    
+    float data[11] = { 0.0+xpos2, 0.0+ypos2, 0.9+zpos2, 0.35+xpos2, 0.35+ypos2, 0.7+zpos2, -0.35+xpos2, 0.35+ypos2, -0.7+zpos2, red_id, 1 } ;
+    
+    float data2[11] = { 0.0+(IDK_GetMouseX()), 0.0, 0.9+(IDK_GetMouseY()), 0.35+(IDK_GetMouseX()), 0.35, 0.7+(IDK_GetMouseY()), -0.35+(IDK_GetMouseX()), 0.35, -0.7+(IDK_GetMouseY()), blue_id, 1  } ;
     
     RKMath_Equal(triangle, data, 11) ;
     
@@ -109,7 +100,7 @@ void pirates_teststuff(codename_scene scene, float MouseX, float MouseY) {
     
     if (!init) init++ ;
     
-    if ( count > 10 ) {
+    if ( count > 100 ) {
         
         pirates_destroy_primitive_array(triangle_one) ;
         
@@ -120,9 +111,9 @@ void pirates_teststuff(codename_scene scene, float MouseX, float MouseY) {
     
     pirates_render(scene3d) ;
     
-    if ( count < 10 ) pirates_destroy_bins(scene3d) ;
+    if ( count < 100 ) pirates_destroy_bins(scene3d) ;
     
-    if ( count > 10 ) {
+    if ( count > 100 ) {
        
     pirates_destroy_scene(scene3d) ;
     

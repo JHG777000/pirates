@@ -22,8 +22,10 @@ JHGPixels_scene JHGPixels_newscene( int x, int y, JHGPixelcolor_Object backgroun
 void JHGPixels_SetBackGroundColor(JHGPixels_scene scene, JHGsubpixel red, JHGsubpixel blue, JHGsubpixel green) ;
 void JHGPixels_SetPixel( JHGPixels_scene scene, int x, int y, JHGsubpixel red, JHGsubpixel blue, JHGsubpixel green ) ;
 void JHGPixels_FastMonocolorSet( JHGsubpixel pixelarray[], const JHGsubpixel color, const int size ) ;
+void JHGPixels_FastColorSet( JHGsubpixel pixelarray[], const JHGsubpixel red, const JHGsubpixel blue, const JHGsubpixel green, const int size ) ;
 void JHGPixels_Reset_To_Monocolor( JHGPixels_scene scene, JHGsubpixel color ) ;
 void JHGPixels_Reset( JHGPixels_scene scene, JHGsubpixel red, JHGsubpixel blue, JHGsubpixel green ) ;
+void JHGPixels_ResetBackGround( JHGPixels_scene scene ) ;
 void JHGPixels_scenefree( JHGPixels_scene scene ) ;
 
 typedef struct 

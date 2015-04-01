@@ -102,6 +102,20 @@ void JHGPixels_FastMonocolorSet( JHGsubpixel pixelarray[], const JHGsubpixel col
     }
 }
 
+void JHGPixels_FastColorSet( JHGsubpixel pixelarray[], const JHGsubpixel red, const JHGsubpixel blue, const JHGsubpixel green, const int size ) {
+    
+    int rk = 0 ;
+    
+    while ( rk < size ) {
+        
+        pixelarray[rk] = red ;
+        pixelarray[rk + 1] = green ;
+        pixelarray[rk + 2] = blue ;
+        
+        rk+=3 ;
+    }
+}
+
 void JHGPixels_Reset_To_Monocolor( JHGPixels_scene scene, JHGsubpixel color ) {
     
     int i = 0 ;
@@ -139,8 +153,6 @@ void JHGPixels_Reset( JHGPixels_scene scene, JHGsubpixel red, JHGsubpixel blue, 
     int i = 0 ;
     
     int j = 0 ;
-    
-    int rk = 0 ;
 
     if ( scene->pixelarray_single == NULL ) {
         
@@ -162,21 +174,15 @@ void JHGPixels_Reset( JHGPixels_scene scene, JHGsubpixel red, JHGsubpixel blue, 
         
     } else if ( scene->pixelarray_double == NULL  ) {
         
-        while ( i < (scene->x ) ) {
-            j = 0 ;
-            while ( j < (scene->y ) ) {
-                
-                scene->pixelarray_single[rk] = red ;
-                scene->pixelarray_single[rk + 1] = green ;
-                scene->pixelarray_single[rk + 2] = blue ;
-                
-                j++;
-                rk += 3 ;
-            }
-            i++ ;
-        }
+        JHGPixels_FastColorSet( scene->pixelarray_single, red, blue, green, ( scene->x * (scene->y * 3) ) ) ;
+    
     }
     
+}
+
+void JHGPixels_ResetBackGround( JHGPixels_scene scene ) {
+ 
+    JHGPixels_Reset( scene, scene->background.r, scene->background.b, scene->background.g ) ;
 }
 
 void JHGPixels_init( JHGPixels_scene scene )  {

@@ -22,13 +22,15 @@ typedef RKList RKTasks_TaskList ;
 
 typedef RKList_node RKTasks_Tasklet ;
 
-struct RKTasks_ThisTask_s { RKT_Lock this_task_lock ; int kill ; } ;
+struct RKThread_s { pthread_t thread ; int alive ; } ;
+
+struct RKTasks_ThisTask_s { int kill ; int task_id ; } ;
 
 struct RKTasks_Task_s { RKT_Lock task_lock ; RKTasks_ThisTask ThisTask ; int active ;
     
 void (*TaskFunc)(void *, struct RKTasks_ThisTask_s *) ; void *TaskArgs ; RKTasks_Tasklet list_node ; int task_run_id ; } ;
 
-struct RKTasks_TaskGroup_s { RKT_Lock task_group_lock ; RKTasks_TaskList TaskList ; int NumOfDoneTasks ; int NumOfTasks ; int init ;
+struct RKTasks_TaskGroup_s { RKT_Lock task_group_lock ; RKT_Lock done_tasks_lock ; RKTasks_TaskList TaskList ; int NumOfDoneTasks ; int NumOfTasks ; int init ;
     
 int group_run_id ; } ;
 
@@ -175,6 +177,8 @@ RKTasks_TaskGroup RKTasks_NewTaskGroup( void ) {
     
     RKTasks_StartLock(NewGroup->task_group_lock) ;
     
+    RKTasks_StartLock(NewGroup->done_tasks_lock) ;
+    
     return NewGroup ;
     
 }
@@ -207,6 +211,8 @@ void RKTasks_KillTaskGroup( RKTasks_TaskGroup TaskGroup ) {
     TaskGroup->group_run_id = 0 ;
     
     RKTasks_EndLock(TaskGroup->task_group_lock) ;
+    
+    RKTasks_EndLock(TaskGroup->done_tasks_lock) ;
     
     free(TaskGroup) ;
 }
@@ -316,8 +322,6 @@ static void *RKTasks_WorkerThread( void *argument ) {
         
         while (awake) {
             
-                RKTasks_LockLock(TaskGroup->task_group_lock) ;
-            
                 if (Tasklet == NULL) Tasklet = RKList_GetFirstNode(TaskGroup->TaskList) ;
                 
                 while (not_found) {
@@ -328,11 +332,17 @@ static void *RKTasks_WorkerThread( void *argument ) {
                         
                         if ( Task->task_run_id == thread_run_state ) {
                             
+                            RKTasks_LockLock(Task->task_lock) ;
+                            
+                            if ( Task->task_run_id == thread_run_state ) {
+                            
                             Task->task_run_id = !(Task->task_run_id) ;
                             
-                            TaskGroup->NumOfDoneTasks++ ;
-                            
                             not_found = 0 ;
+                                
+                            }
+                            
+                            RKTasks_UnLockLock(Task->task_lock) ;
                             
                         } else {
                             
@@ -347,8 +357,6 @@ static void *RKTasks_WorkerThread( void *argument ) {
                     }
                 }
             
-            RKTasks_UnLockLock(TaskGroup->task_group_lock) ;
-            
             if ( !not_found ) {
                 
                 RKTasks_LockLock(Task->task_lock) ;
@@ -356,16 +364,18 @@ static void *RKTasks_WorkerThread( void *argument ) {
                 if ( Task->active ) {
                 
                 Task->TaskFunc(Task->TaskArgs,Task->ThisTask) ;
-                    
-                RKTasks_LockLock(Task->ThisTask->this_task_lock) ;
                 
                 if (Task->ThisTask->kill) Task->active = 0 ;
-                    
-                RKTasks_UnLockLock(Task->ThisTask->this_task_lock) ;
                     
                 }
                 
                 RKTasks_UnLockLock(Task->task_lock) ;
+                
+                RKTasks_LockLock(TaskGroup->done_tasks_lock) ;
+                
+                TaskGroup->NumOfDoneTasks++ ;
+                
+                RKTasks_UnLockLock(TaskGroup->done_tasks_lock) ;
 
             }
             
@@ -565,7 +575,11 @@ int RKTasks_KillThreadWithTid( RKTasks_ThreadGroup ThreadGroup, int tid ) {
     
     RKTasks_LockLock(ThreadGroup->thread_group_lock) ;
     
+    if ( ThreadGroup->ThreadArray[tid].alive != -1 ) {
+    
     ThreadGroup->ThreadArray[tid].alive = 0 ;
+        
+    }
     
     RKTasks_UnLockLock(ThreadGroup->thread_group_lock) ;
     
@@ -579,11 +593,12 @@ int RKTasks_KillThreadWithTid( RKTasks_ThreadGroup ThreadGroup, int tid ) {
 
 void RKTasks_DeactivateTask( RKTasks_ThisTask ThisTask ) {
     
-    RKTasks_LockLock(ThisTask->this_task_lock) ;
-    
     ThisTask->kill = 1 ;
+}
+
+int RKTasks_GetTaskID( RKTasks_ThisTask ThisTask ) {
     
-    RKTasks_UnLockLock(ThisTask->this_task_lock) ;
+    return ThisTask->task_id ;
 }
 
 RKTasks_ThisTask RKTasks_AddTask_Func(RKTasks_TaskGroup TaskGroup, void (*TaskFunc)(void *, struct RKTasks_ThisTask_s *), void *TaskArgs ) {
@@ -591,8 +606,6 @@ RKTasks_ThisTask RKTasks_AddTask_Func(RKTasks_TaskGroup TaskGroup, void (*TaskFu
     RKTasks_ThisTask ThisTask = RKMem_NewMemOfType(RKTasks_ThisTask_object) ;
     
     ThisTask->kill = 0 ;
-    
-    RKTasks_StartLock(ThisTask->this_task_lock) ;
     
     RKTasks_Task Task = RKMem_NewMemOfType(RKTasks_Task_object) ;
     
@@ -613,6 +626,8 @@ RKTasks_ThisTask RKTasks_AddTask_Func(RKTasks_TaskGroup TaskGroup, void (*TaskFu
     Task->list_node = RKList_AddToList(TaskGroup->TaskList, (void*)Task) ;
     
     TaskGroup->NumOfTasks = RKList_GetNumOfNodes(TaskGroup->TaskList) ;
+    
+    Task->ThisTask->task_id = TaskGroup->NumOfTasks ;
     
     RKTasks_UnLockLock(TaskGroup->task_group_lock) ;
     

@@ -17,7 +17,7 @@
 #define RKLib_RKTasks_h
 #include <pthread.h>
 
-typedef struct { pthread_t thread ; int alive ; } RKThread ;
+typedef struct RKThread_s RKThread ;
 
 typedef RKThread* RKThreads ;
 
@@ -268,6 +268,15 @@ int RKTasks_KillThreadWithTid( RKTasks_ThreadGroup ThreadGroup, int tid ) ;
  */
 
 void RKTasks_DeactivateTask( RKTasks_ThisTask ThisTask ) ;
+
+/*
+ RKTasks_GetTaskID
+ 
+ Returns the Task ID.
+ 
+ */
+
+int RKTasks_GetTaskID( RKTasks_ThisTask ThisTask ) ;
 
 /*
  RKTasks_AddTask_Func

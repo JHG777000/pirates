@@ -24,19 +24,18 @@ typedef JHGPixelcolor_Object* codename_pixelcolor ;
 typedef JHGsubpixel cn_RGBcolor ;
 typedef JHGPixels_scene codename_pixelscene ;
 typedef struct { int x ; int y ; } cn_point ;
-typedef struct { codename_pixelscene pixelscene ; float point_to_pixel_ratio ; cn_point origin ; } codename_scene_object ;
+typedef struct { codename_pixelscene pixelscene ; cn_point origin ; } codename_scene_object ;
 typedef codename_scene_object* codename_scene ;
 
 //funcs
 int codename_createcanvas(codename_pixelscene pixelscene, int (*canvas_funtion)(codename_pixelscene pixelscene));
 int codename_testfunc(codename_pixelscene pixelscene);
 codename_pixelcolor codename_NewColorObject( cn_RGBcolor red, cn_RGBcolor blue, cn_RGBcolor green ) ;
-codename_scene codename_NewSceneObject(codename_pixelscene pixelscene, float point_to_pixel_ratio, int origin_x, int origin_y) ;
+codename_scene codename_NewSceneObject(codename_pixelscene pixelscene, int origin_x, int origin_y) ;
 void codename_movescene(codename_scene pointscene, cn_point neworigin) ;
 void codename_ChangeBackGroundColor(codename_scene pointscene, cn_RGBcolor red, cn_RGBcolor blue, cn_RGBcolor green );
 void codename_GetMainResolution(int *width, int *height) ;
 void codename_GetWindowSize(int *width, int *height) ;
-void codename_GetPointToPixelRatio(codename_scene pointscene, float *point_to_pixel_ratio) ;
 
 //Pixel Op funcs
 void codename_SetPixel(codename_scene pointscene, int x, int y, cn_RGBcolor red, cn_RGBcolor blue, cn_RGBcolor green);

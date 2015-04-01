@@ -48,7 +48,7 @@
 #ifndef __SOURCE_UTIL_H__
 #define __SOURCE_UTIL_H__
 
-#include "GLBase.h"
+#include "glUtil.h"
 
 typedef struct demoSourceRec
 {

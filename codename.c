@@ -24,7 +24,7 @@ int codename_testfunc(codename_pixelscene pixelscene) {
     
 }
 
-codename_scene codename_NewSceneObject(codename_pixelscene pixelscene, float point_to_pixel_ratio, int origin_x, int origin_y) {
+codename_scene codename_NewSceneObject(codename_pixelscene pixelscene, int origin_x, int origin_y) {
     
     codename_scene newscene ;
     
@@ -33,8 +33,6 @@ codename_scene codename_NewSceneObject(codename_pixelscene pixelscene, float poi
     if ( newscene == NULL ) return NULL ;
     
     newscene->pixelscene = pixelscene ;
-    
-    newscene->point_to_pixel_ratio = point_to_pixel_ratio ;
     
     newscene->origin.x = origin_x ;
     
@@ -64,12 +62,6 @@ void codename_GetMainResolution(int *width, int *height) {
 void codename_GetWindowSize(int *width, int *height) {
     
     JHGPixels_GetWindowSize(width, height) ;
-    
-}
-
-void codename_GetPointToPixelRatio(codename_scene pointscene, float *point_to_pixel_ratio) {
-    
-    *point_to_pixel_ratio = pointscene->point_to_pixel_ratio ;
     
 }
 
