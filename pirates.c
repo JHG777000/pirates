@@ -1369,6 +1369,10 @@ typedef struct { pirates_Material material ; double t ; } hitobj_object ;
 
 typedef hitobj_object* hitobj ;
 
+typedef struct FastList_s { struct FastList_s* before ; struct FastList_s* after ; void* data ; } FastList_object ;
+
+typedef FastList_object* FastList ;
+
 static void* BinArrayGetData(void* array, int index) {
     
     pirates_bins bins = (pirates_bins)array ;
@@ -1378,7 +1382,7 @@ static void* BinArrayGetData(void* array, int index) {
 
 hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
     
-    pirates_geom_list_node primitive_node ;
+    FastList primitive_node ;
     
     pirates_Material material = NULL ;
     
@@ -1389,8 +1393,6 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
     pirates_bin bin = NULL ;
     
     pirates_bins bins = NULL ;
-    
-    material = pirates_newmaterial(Colorit(0.0, 0.0, 0.0)) ;
     
     hitobj hit = RKMem_NewMemOfType(hitobj_object) ;
     
@@ -1413,6 +1415,8 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
     fbit.init = 0 ;
     
     if (fast_bin_intersection(r,(pirates_bin)scene_bin,&fbit)) {
+        
+        material = pirates_newmaterial(Colorit(0.0, 0.0, 0.0)) ;
         
         bins = scene_bin->bin_array ;
         
@@ -1442,11 +1446,11 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
                 
             } else {
                 
-                primitive_node = RKList_GetFirstNode(bin->primitive_list) ;
+                primitive_node = (FastList)RKList_GetFirstNode(bin->primitive_list) ;
                 
                 while (primitive_node != NULL) {
                     
-                    primitive = (pirates_primitive)RKList_GetData(primitive_node) ;
+                    primitive = (pirates_primitive)primitive_node->data ;
                     
                     if ( primitive->bounding_volume->intersection_func(r,primitive->bounding_volume->data) ) {
                         
@@ -1465,7 +1469,7 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
                     
                     }
                     
-                    primitive_node = RKList_GetNextNode(primitive_node) ;
+                    primitive_node = primitive_node->after ;
                 }
 
             }
@@ -1523,7 +1527,12 @@ raycolor pirates_ray_cast_func(Ray r, pirates_scene scene) {
     
      hitobj hit = pirates_get_first_intersection( scene, r ) ;
     
-     if (hit == NULL) return fincolor ;
+    if (hit->material == NULL) {
+        
+        free(hit) ;
+        
+        return fincolor ;
+    }
     
      fincolor = Color_add(fincolor, hit->material->color) ;
     
