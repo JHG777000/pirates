@@ -46,8 +46,6 @@ static void WhyMe( int status ) {
     
     JHGPixels_destroywindow();
     
-    glfwTerminate();
-    
     cleanup() ;
     
     exit(status);
@@ -118,8 +116,6 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GL_TRUE) ;
-        
-         WhyMe(0) ;
     }
    
     switch (key) {
@@ -288,5 +284,5 @@ int main(int argc, char **argv) {
     glfwDestroyWindow(window);
     
     glfwTerminate();
-    exit(EXIT_SUCCESS);
+    WhyMe(0);
 }

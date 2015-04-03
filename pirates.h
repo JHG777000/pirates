@@ -92,7 +92,7 @@ typedef RKList pirates_geom_list ;
 
 typedef RKList_node pirates_geom_list_node ;
 
-typedef struct pirates_bin_s { int root ; pirates_bounding_box bounding_box ; struct pirates_bin_s* bigger_bin ;
+typedef struct pirates_bin_s { int root ; int bin_id ; pirates_bounding_box bounding_box ; struct pirates_bin_s* bigger_bin ;
     
 struct pirates_bin_s** bin_array ; int num_of_bins ;
     
@@ -102,7 +102,7 @@ typedef pirates_bin_object* pirates_bin ;
 
 typedef pirates_bin* pirates_bins ;
 
-typedef struct { int root ; pirates_bounding_box bounding_box ; struct pirates_bin_s* bigger_bin ;
+typedef struct { int root ; int bin_id ; pirates_bounding_box bounding_box ; struct pirates_bin_s* bigger_bin ;
     
 pirates_bins bin_array ; int num_of_bins ; pirates_geom_list primitive_list ; raycolor color ;
     

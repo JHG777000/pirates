@@ -1,4 +1,4 @@
-NOTE: Some code is under a different License, and is noted as such.
+NOTE: Some code is under a different License, and is indicated as such.
 
 /*
  Copyright (c) 2015 Jacob Gordon. All rights reserved.

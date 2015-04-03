@@ -22,7 +22,7 @@ void pirates_teststuff(IDKDrawArea Area) {
     
     RKMath_Vectorit(focus, 0.0, 0.0, 0.0) ;
     
-    if (!init) scene3d = pirates_new_scene(Area, 0, 1000000.0f, position, focus, 512, 512, 1, 35, 1) ;
+    if (!init) scene3d = pirates_new_scene(Area, 1, 1000000.0f, position, focus, 512, 512, 1, 35, 1) ;
     
     static float xpos, ypos, zpos = 0 ;
     

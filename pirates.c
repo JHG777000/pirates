@@ -891,6 +891,8 @@ pirates_scene_bin pirates_create_scene_bin(pirates_scene scene, int sort_min, in
     
     scene_bin->root = 1 ;
     
+    scene_bin->bin_id = 0 ;
+    
     scene_bin->num_of_bins = 0 ;
     
     scene_bin->bin_array = NULL ;
@@ -975,6 +977,8 @@ pirates_bin pirates_new_bin( pirates_bin bigger_bin, Group Group_, raycolor bin_
     
     new_bin->root = 0 ;
     
+    new_bin->bin_id = 0 ;
+    
     new_bin->num_of_bins = 0 ;
     
     new_bin->bin_array = NULL ;
@@ -999,6 +1003,8 @@ void pirates_add_bin( Group Group_, raycolor bin_color, pirates_bin bin, pirates
     pirates_addBin(new_bin,&(scene_bin->scene_bin_array),&(scene_bin->num_of_bins_in_scene)) ;
     
     pirates_addBin(new_bin,&(bin->bin_array),&(bin->num_of_bins)) ;
+    
+    new_bin->bin_id = bin->num_of_bins ;
 
 }
 
@@ -1118,7 +1124,7 @@ void pirates_makelevels( pirates_bins* level_bins, int* num_of_level_bins, pirat
     
     while ( i < (*num_of_level_bins) ) {
         
-        if ( ( RKList_GetNumOfNodes((*level_bins)[i]->primitive_list) > scene_bin->sort_min) && (RKList_GetNumOfNodes((*level_bins)[i]->primitive_list) < scene_bin->sort_max) )
+        if ( (RKList_GetNumOfNodes((*level_bins)[i]->primitive_list) < scene_bin->sort_max) )
             pirates_bins_good_sort((*level_bins)[i],&new_bins,&num_of_new_bins,scene_bin) ;
         
         
@@ -1281,6 +1287,51 @@ float fracf(float x) {
     return x - floorf(x) ;
 }
 
+typedef struct { RKMath_NewVector(inv_dir, 3) ; int init ; } fast_bin_intersection_type ;
+
+float fast_bin_intersection( Ray r, pirates_bin box, fast_bin_intersection_type* fbit_ptr ) {
+    
+    RKMath_NewVector(tmin, 3) ;
+    
+    RKMath_NewVector(tmax, 3) ;
+    
+    RKMath_NewVector(t1, 3) ;
+    
+    RKMath_NewVector(t2, 3) ;
+    
+    RKMath_Vectorit(boxmin, box->bounding_box.x, box->bounding_box.y, box->bounding_box.z) ;
+    
+    RKMath_Vectorit(boxmax, box->bounding_box.X, box->bounding_box.Y, box->bounding_box.Z) ;
+    
+    if ( !(fbit_ptr->init) ) {
+        
+        RKMath_NewVector(one, 3) ;
+        
+        RKMath_Set_Vec_Equal_To_A_Const(one,1,3) ;
+        
+        RKMath_Div(fbit_ptr->inv_dir, one, r.direction, 3) ;
+        
+        fbit_ptr->init++ ;
+    }
+    
+    RKMath_Sub(tmin, boxmin, r.origin, 3) ;
+    
+    RKMath_Sub(tmax, boxmax, r.origin, 3) ;
+    
+    RKMath_Mul(tmin, tmin, fbit_ptr->inv_dir, 3) ;
+    
+    RKMath_Mul(tmax, tmax, fbit_ptr->inv_dir, 3) ;
+    
+    RKMath_MinMax(t1, t2, tmin, tmax, 3) ;
+    
+    float tNear = MAX_JHG(MAX_JHG(t1[RKM_X], t1[RKM_Y]), t1[RKM_Z]) ;
+    float tFar = MIN_JHG(MIN_JHG(t2[RKM_X], t2[RKM_Y]), t2[RKM_Z]) ;
+    
+    if ( (tNear > 0) && (tNear < tFar) ) return tNear ;
+    
+    return 0 ;
+}
+
 float bin_intersection( Ray r, pirates_bin box ) {
     
     RKMath_NewVector(tmin, 3) ;
@@ -1318,41 +1369,6 @@ typedef struct { pirates_Material material ; double t ; } hitobj_object ;
 
 typedef hitobj_object* hitobj ;
 
-hitobj pirates_find_hit(pirates_scene scene, Ray r, pirates_geom_list primitive_list, hitobj hit) {
-    
-    double draw_distance = scene->draw_distance ;
-    
-    double t = 0 ;
-    
-    pirates_primitive primitive ;
-    
-    pirates_geom_list_node primitive_node ;
-    
-    primitive_node = RKList_GetFirstNode(primitive_list) ;
-    
-    while ( primitive_node != NULL ) {
-    
-        primitive = (pirates_primitive)RKList_GetData(primitive_node) ;
-        
-        t = primitive->shape_volume->intersection_func(r,primitive->shape_volume->data) ;
-        
-        if ((t) && (0 < t < draw_distance) ) {
-        
-          draw_distance = t ;
-            
-          hit->material = pirates_get_material(scene, (pirates_triangle)primitive->shape_volume->data);
-            
-          hit->t = t ;
-        
-        }
-    
-        primitive_node = RKList_GetNextNode(primitive_node) ;
-        
-    }
-    
-    return hit ;
-}
-
 static void* BinArrayGetData(void* array, int index) {
     
     pirates_bins bins = (pirates_bins)array ;
@@ -1361,10 +1377,6 @@ static void* BinArrayGetData(void* array, int index) {
 }
 
 hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
-
-    pirates_geom_list primitive_list = NULL ;
-    
-    pirates_geom_list bin_list = NULL ;
     
     pirates_geom_list_node primitive_node ;
     
@@ -1372,7 +1384,11 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
     
     pirates_primitive primitive ;
     
-    pirates_bin bin ;
+    pirates_primitive hit_primitive ;
+    
+    pirates_bin bin = NULL ;
+    
+    pirates_bins bins = NULL ;
     
     material = pirates_newmaterial(Colorit(0.0, 0.0, 0.0)) ;
     
@@ -1386,32 +1402,43 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
     
     int i = 0 ;
     
-    if (bin_intersection(r,(pirates_bin)scene_bin)) {
+    double t = 0 ;
+    
+    int num_of_bins = 0 ;
+    
+    double draw_distance = scene->draw_distance ;
+    
+    fast_bin_intersection_type fbit ;
+    
+    fbit.init = 0 ;
+    
+    if (fast_bin_intersection(r,(pirates_bin)scene_bin,&fbit)) {
         
-        bin_list = RKList_NewListFromArray(scene_bin->bin_array, BinArrayGetData, scene_bin->num_of_bins) ;
+        bins = scene_bin->bin_array ;
         
-        primitive_list = RKList_NewList() ;
+        num_of_bins = scene_bin->num_of_bins ;
         
         if (scene->debug) material->color = Color_add(material->color, Colorit(0.2, 0.2, 0.2)) ;
         
-        while ( RKList_GetFirstNode(bin_list) != NULL ) {
+        i = 0 ;
+        
+        while (1) {
             
-            bin = (pirates_bin)RKList_GetData(RKList_GetFirstNode(bin_list)) ;
+        while ( i < num_of_bins ) {
             
-            if ( bin_intersection(r,bin) ) {
+            bin = bins[i] ;
+            
+            if ( fast_bin_intersection(r,bin,&fbit) ) {
                 
             if (scene->debug) material->color = Color_add(material->color, bin->color) ;
                 
             if ( bin->num_of_bins > 0 ) {
                 
-                i = 0 ;
+                bins = bin->bin_array ;
                 
-                while ( i < bin->num_of_bins ) {
-                        
-                        RKList_AddToList(bin_list, (void*)bin->bin_array[i]) ;
-                    
-                    i++ ;
-                }
+                num_of_bins = bin->num_of_bins ;
+                
+                i = -1 ;
                 
             } else {
                 
@@ -1421,9 +1448,22 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
                     
                     primitive = (pirates_primitive)RKList_GetData(primitive_node) ;
                     
-                    if ( primitive->bounding_volume->intersection_func(r,primitive->bounding_volume->data) )
+                    if ( primitive->bounding_volume->intersection_func(r,primitive->bounding_volume->data) ) {
                         
-                        RKList_AddNodeToList(primitive_list, primitive_node) ;
+                        t = primitive->shape_volume->intersection_func(r,primitive->shape_volume->data) ;
+                        
+                        if ((t) && (0 < t < draw_distance) ) {
+                            
+                            draw_distance = t ;
+                            
+                            hit->material = pirates_get_material(scene, (pirates_triangle)primitive->shape_volume->data);
+                            
+                            hit->t = t ;
+                            
+                            hit_primitive = primitive ;
+                        }
+                    
+                    }
                     
                     primitive_node = RKList_GetNextNode(primitive_node) ;
                 }
@@ -1432,20 +1472,33 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
                 
             }
             
-            RKList_DeleteNode(bin_list, RKList_GetFirstNode(bin_list)) ;
+            i++ ;
         }
         
-        hit = pirates_find_hit(scene,r,primitive_list,hit) ;
+            if ( bin == NULL ) break ;
             
+            if ( bin->bigger_bin != NULL ) {
+                
+                i = bin->bin_id ;
+                
+                bin = bin->bigger_bin ;
+                
+                num_of_bins = bin->num_of_bins ;
+                
+                if ( bin->root ) break ;
+                
+            } else {
+                
+                break ;
+            }
+            
+        }
+        
         if (hit->material != NULL) {
                 
          material->color = Color_add(material->color, hit->material->color) ;
             
         }
-        
-        RKList_DeleteList(bin_list) ;
-        
-        RKList_DeleteList(primitive_list) ;
     }
     
     hit->material = material ;
