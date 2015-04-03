@@ -160,8 +160,6 @@ void pirates_add_triangle_array( pirates_scene scene, pirates_primitive_array pr
 
 pirates_Material pirates_newmaterial( raycolor color ) ;
 
-pirates_Material pirates_get_material(pirates_scene scene, pirates_triangle triangle ) ;
-
 int pirates_addmaterial( pirates_scene scene, pirates_Material material ) ;
 
 void pirates_destroy_scene( pirates_scene scene ) ;

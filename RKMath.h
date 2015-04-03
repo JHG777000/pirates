@@ -39,6 +39,8 @@
 
 #define  RKMath_Vectorit(name, x, y, z) RKMath_NewVector(name, 3) = {x,y,z}
 
+#define RKMath_Vectoris(name,size,...) RKMath_NewVector(name,size) = {__VA_ARGS__}
+
 #define  RKMath_Vectorthat(name, that) RKMath_Vectorit(name,that,that,that)
 
 #define  RKMath_Vectorthis(oldvec, x, y, z) \
@@ -50,7 +52,6 @@ oldvec[2] = z  \
 vec_a[0] = vec_b[0] ; \
 vec_a[1] = vec_b[1] ; \
 vec_a[2] = vec_b[2]  \
-
 
  typedef float* RKMVector ;
 

@@ -1365,7 +1365,7 @@ float bin_intersection( Ray r, pirates_bin box ) {
 }
 
 
-typedef struct { pirates_Material material ; double t ; } hitobj_object ;
+typedef struct { pirates_Material material ; int hit ; int m_id ; double t ; } hitobj_object ;
 
 typedef hitobj_object* hitobj ;
 
@@ -1378,6 +1378,13 @@ static void* BinArrayGetData(void* array, int index) {
     pirates_bins bins = (pirates_bins)array ;
     
     return (void*)bins[index] ;
+}
+
+pirates_Material pirates_get_material(pirates_scene scene, pirates_triangle triangle, hitobj hit ) {
+    
+    hit->m_id = (int)(triangle[pr_M] - 1 ) ;
+    
+    return scene->materials[(int)(triangle[pr_M] - 1 )] ;
 }
 
 hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
@@ -1398,6 +1405,10 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
     
     hit->material = NULL ;
     
+    hit->m_id = 0 ;
+    
+    hit->hit = 0 ;
+    
     hit->t = 0 ;
     
     pirates_scene_bin scene_bin = scene->scene_bin ;
@@ -1416,7 +1427,7 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
     
     if (fast_bin_intersection(r,(pirates_bin)scene_bin,&fbit)) {
         
-        material = pirates_newmaterial(Colorit(0.0, 0.0, 0.0)) ;
+        if (scene->debug) material = pirates_newmaterial(Colorit(0.0, 0.0, 0.0)) ;
         
         bins = scene_bin->bin_array ;
         
@@ -1460,7 +1471,9 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
                             
                             draw_distance = t ;
                             
-                            hit->material = pirates_get_material(scene, (pirates_triangle)primitive->shape_volume->data);
+                            hit->material = pirates_get_material(scene, (pirates_triangle)primitive->shape_volume->data,hit);
+                            
+                            hit->hit = 1 ;
                             
                             hit->t = t ;
                             
@@ -1500,13 +1513,17 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
         
         if (hit->material != NULL) {
                 
-         material->color = Color_add(material->color, hit->material->color) ;
+         if (scene->debug) material->color = Color_add(material->color, hit->material->color) ;
             
         }
     }
     
+    if ( scene->debug ) {
+    
     hit->material = material ;
     
+    }
+        
     return hit ;
     
 }
@@ -1516,16 +1533,13 @@ hitobj pirates_get_first_intersection( pirates_scene scene, Ray r ) {
      return pirates_find_object_via_bins(scene,r) ;
 }
 
-pirates_Material pirates_get_material(pirates_scene scene, pirates_triangle triangle ) {
-    
-    return scene->materials[(int)(triangle[pr_M] - 1 )] ;
-}
-
 raycolor pirates_ray_cast_func(Ray r, pirates_scene scene) {
     
      raycolor fincolor = Colorthat(0) ;
     
      hitobj hit = pirates_get_first_intersection( scene, r ) ;
+    
+    if (!scene->debug) if (hit->hit) hit->material = scene->materials[hit->m_id] ;
     
     if (hit->material == NULL) {
         
@@ -1536,7 +1550,7 @@ raycolor pirates_ray_cast_func(Ray r, pirates_scene scene) {
     
      fincolor = Color_add(fincolor, hit->material->color) ;
     
-     free(hit->material) ;
+     if (scene->debug) free(hit->material) ;
     
      free(hit) ;
     

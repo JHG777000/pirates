@@ -231,9 +231,9 @@ void RKMath_MinMax_Solo(float* min, float* max, const float vec[], const int siz
     
     while ( i < size ) {
         
-        *min = ( vec[i] < *min ) ? *min : vec[i] ;
+        *min = ( vec[i] < *min ) ? vec[i] : *min  ;
         
-        *max = ( vec[i] > *max ) ? *max : vec[i] ;
+        *max = ( vec[i] > *max ) ? vec[i] : *max ;
         
         i++ ;
     }
