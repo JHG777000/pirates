@@ -1018,84 +1018,53 @@ void pirates_bins_good_sort( pirates_bin bin, pirates_bins* new_bins, int* num_o
     
     int i = 0 ;
     
-    int j = 0 ;
+    int n = 4 ;
     
-    int k = 0 ;
+    float box_xval = box.x ;
     
-    int n0 = 2 ;
+    pirates_bounding_box* boxes = RKMem_CArray(n, pirates_bounding_box) ;
     
-    int n1 = 2 ;
+    Group* Groups = RKMem_CArray(n,Group) ;
     
-    int n2 = 2 ;
-    
-    pirates_bounding_box* boxes = RKMem_CArray(n0 * n1 * n2, pirates_bounding_box) ;
-    
-    Group* Groups = RKMem_CArray(n0 * n1 * n2,Group) ;
-    
-    int index = 0 ;
-    
-    while ( i < n0 ) {
+    while ( i < n ) {
         
-        j = 0 ;
+        boxes[i] = box ;
         
-        while ( j < n1 ) {
+        boxes[i].x = box_xval ;
+        
+        box_xval = boxes[i].X = ((box.X) / n) * (i+1) ;
+        
+        Groups[i] = NewGroup(boxes[i]) ;
+        
+        node = RKList_GetFirstNode(bin->primitive_list) ;
+        
+        while ( node != NULL ) {
             
-            k = 0 ;
+            primitive = (pirates_primitive)RKList_GetData(node) ;
             
-            while ( k < n2 ) {
+            if ( CheckXYZ(primitive->bounding_box,Groups[i]->bounding_box) ) {
                 
-                if ( index >= (n0 * n1 * n2) ) index = 0 ; ;
+                pirates_addPrimitive_to_Group(primitive,Groups[i]) ;
                 
-                boxes[index].x = ((i*box.X) + box.x) ;
-                
-                boxes[index].X = ((box.X) * (1))  ;
-                
-                boxes[index].y = ((j*box.Y) + box.y) ;
-                
-                boxes[index].Y = ((box.Y) * (1))  ;
-                
-                boxes[index].z = ((k*box.Z) + box.z) ;
-                
-                boxes[index].Z = ((box.Z) * (1))  ;
-                
-                Groups[index] = NewGroup(boxes[index]) ;
-                
-                node = RKList_GetFirstNode(bin->primitive_list) ;
-                
-                while ( node != NULL ) {
-                    
-                    primitive = (pirates_primitive)RKList_GetData(node) ;
-                    
-                    if ( CheckXYZ(primitive->bounding_box,Groups[index]->bounding_box) ) {
-                        
-                        pirates_addPrimitive_to_Group(primitive,Groups[index]) ;
-                        
-                    }
-                    
-                    node = RKList_GetNextNode(node) ;
-                }
-                
-                pirates_add_bin(Groups[index],Colorit(i*0.2, j*0.2, k*0.2),bin,new_bins,num_of_new_bins,scene_bin) ;
-                
-                k++ ;
-                
-                index++ ;
             }
             
-            j++ ;
+            node = RKList_GetNextNode(node) ;
         }
+        
+        pirates_add_bin(Groups[i],Colorit(i*0.2, i*0.2, i*0.2),bin,new_bins,num_of_new_bins,scene_bin) ;
         
         i++ ;
     }
     
     i = 0 ;
     
-    while ( i < (n0 * n1 * n2) ) {
+    while ( i < n ) {
         
         free(Groups[i]) ;
         
         i++ ;
     }
+    
     
     if (!bin->root) RKList_DeleteAllNodesInList(bin->primitive_list) ;
     
