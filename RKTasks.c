@@ -197,6 +197,8 @@ void RKTasks_KillTaskGroup( RKTasks_TaskGroup TaskGroup ) {
         
         free(Task->TaskArgs) ;
         
+        free(Task->ThisTask) ;
+        
         free(Task) ;
         
         Tasklet = RKList_GetNextNode(Tasklet) ;

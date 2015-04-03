@@ -1365,9 +1365,9 @@ float bin_intersection( Ray r, pirates_bin box ) {
 }
 
 
-typedef struct { pirates_Material material ; int hit ; int m_id ; double t ; } hitobj_object ;
+typedef struct { raycolor color ; int hit ; int m_id ; double t ; } hitobj_object ;
 
-typedef hitobj_object* hitobj ;
+typedef hitobj_object hitobj ;
 
 typedef struct FastList_s { struct FastList_s* before ; struct FastList_s* after ; void* data ; } FastList_object ;
 
@@ -1380,7 +1380,7 @@ static void* BinArrayGetData(void* array, int index) {
     return (void*)bins[index] ;
 }
 
-pirates_Material pirates_get_material(pirates_scene scene, pirates_triangle triangle, hitobj hit ) {
+pirates_Material pirates_get_material(pirates_scene scene, pirates_triangle triangle, hitobj* hit ) {
     
     hit->m_id = (int)(triangle[pr_M] - 1 ) ;
     
@@ -1391,7 +1391,7 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
     
     FastList primitive_node ;
     
-    pirates_Material material = NULL ;
+    raycolor color = Colorthat(0) ;
     
     pirates_primitive primitive ;
     
@@ -1401,15 +1401,15 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
     
     pirates_bins bins = NULL ;
     
-    hitobj hit = RKMem_NewMemOfType(hitobj_object) ;
+    hitobj hit ;
     
-    hit->material = NULL ;
+    hit.color = Colorthat(0) ;
     
-    hit->m_id = 0 ;
+    hit.m_id = 0 ;
     
-    hit->hit = 0 ;
+    hit.hit = 0 ;
     
-    hit->t = 0 ;
+    hit.t = 0 ;
     
     pirates_scene_bin scene_bin = scene->scene_bin ;
     
@@ -1427,13 +1427,11 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
     
     if (fast_bin_intersection(r,(pirates_bin)scene_bin,&fbit)) {
         
-        if (scene->debug) material = pirates_newmaterial(Colorit(0.0, 0.0, 0.0)) ;
-        
         bins = scene_bin->bin_array ;
         
         num_of_bins = scene_bin->num_of_bins ;
         
-        if (scene->debug) material->color = Color_add(material->color, Colorit(0.2, 0.2, 0.2)) ;
+        if (scene->debug) color = Color_add(color, Colorit(0.2, 0.2, 0.2)) ;
         
         i = 0 ;
         
@@ -1445,7 +1443,7 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
             
             if ( fast_bin_intersection(r,bin,&fbit) ) {
                 
-            if (scene->debug) material->color = Color_add(material->color, bin->color) ;
+            if (scene->debug) color = Color_add(color, bin->color) ;
                 
             if ( bin->num_of_bins > 0 ) {
                 
@@ -1471,11 +1469,11 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
                             
                             draw_distance = t ;
                             
-                            hit->material = pirates_get_material(scene, (pirates_triangle)primitive->shape_volume->data,hit);
+                            pirates_get_material(scene, (pirates_triangle)primitive->shape_volume->data,&hit);
                             
-                            hit->hit = 1 ;
+                            hit.hit = 1 ;
                             
-                            hit->t = t ;
+                            hit.t = t ;
                             
                             hit_primitive = primitive ;
                         }
@@ -1511,16 +1509,18 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
             
         }
         
-        if (hit->material != NULL) {
-                
-         if (scene->debug) material->color = Color_add(material->color, hit->material->color) ;
+        if (hit.hit)  {
+            
+         hit.color = scene->materials[hit.m_id]->color ;
+        
+         if (scene->debug) color = Color_add(color, hit.color) ;
             
         }
     }
     
     if ( scene->debug ) {
     
-    hit->material = material ;
+    hit.color = color ;
     
     }
         
@@ -1539,21 +1539,8 @@ raycolor pirates_ray_cast_func(Ray r, pirates_scene scene) {
     
      hitobj hit = pirates_get_first_intersection( scene, r ) ;
     
-    if (!scene->debug) if (hit->hit) hit->material = scene->materials[hit->m_id] ;
-    
-    if (hit->material == NULL) {
-        
-        free(hit) ;
-        
-        return fincolor ;
-    }
-    
-     fincolor = Color_add(fincolor, hit->material->color) ;
-    
-     if (scene->debug) free(hit->material) ;
-    
-     free(hit) ;
-    
+     fincolor = Color_add(fincolor, hit.color) ;
+   
      return fincolor ;
 }
 
