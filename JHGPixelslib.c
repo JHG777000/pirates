@@ -90,63 +90,17 @@ void JHGPixels_destroywindow(void) {
     
 }
 
-void JHGPixels_FastMonocolorSet( JHGsubpixel pixelarray[], const JHGsubpixel color, const int size ) {
+void JHGPixels_FastColorSet( JHGsubpixel pixelarray[], const JHGsubpixel red, const JHGsubpixel blue, const JHGsubpixel green, const int size, const int f_size, JHGPixelsFormatFunc Format ) {
     
     int rk = 0 ;
     
     while ( rk < size ) {
+
+        Format(pixelarray, rk, red, blue, green) ;
         
-        pixelarray[rk] = color ;
-        
-        rk++ ;
+        rk+=f_size ;
     }
 }
-
-void JHGPixels_FastColorSet( JHGsubpixel pixelarray[], const JHGsubpixel red, const JHGsubpixel blue, const JHGsubpixel green, const int size ) {
-    
-    int rk = 0 ;
-    
-    while ( rk < size ) {
-        
-        pixelarray[rk] = red ;
-        pixelarray[rk + 1] = green ;
-        pixelarray[rk + 2] = blue ;
-        
-        rk+=3 ;
-    }
-}
-
-void JHGPixels_Reset_To_Monocolor( JHGPixels_scene scene, JHGsubpixel color ) {
-    
-    int i = 0 ;
-    
-    int j = 0 ;
-    
-    if ( scene->pixelarray_single == NULL ) {
-        
-        while (i < scene->x) {
-            j = 0 ;
-            while (j < scene->y) {
-                
-                scene->pixelarray_double[i][j].r = color ;
-                
-                scene->pixelarray_double[i][j].g = color ;
-                
-                scene->pixelarray_double[i][j].b = color ;
-                
-                j++ ;
-            }
-            
-            i++ ;
-        }
-        
-    } else if ( scene->pixelarray_double == NULL  ) {
-        
-        JHGPixels_FastMonocolorSet( scene->pixelarray_single, color, ( scene->x * (scene->y * 3) ) ) ;
-  }
-}
-
-
 
 void JHGPixels_Reset( JHGPixels_scene scene, JHGsubpixel red, JHGsubpixel blue, JHGsubpixel green ) {
     
@@ -174,7 +128,7 @@ void JHGPixels_Reset( JHGPixels_scene scene, JHGsubpixel red, JHGsubpixel blue, 
         
     } else if ( scene->pixelarray_double == NULL  ) {
         
-        JHGPixels_FastColorSet( scene->pixelarray_single, red, blue, green, ( scene->x * (scene->y * 3) ) ) ;
+        JHGPixels_FastColorSet( scene->pixelarray_single, red, blue, green, ( scene->x * (scene->y * scene->f_size) ), scene->f_size, scene->Format ) ;
     
     }
     
@@ -190,8 +144,6 @@ void JHGPixels_init( JHGPixels_scene scene )  {
     int i = 0 ;
     
     int j = 0 ;
-    
-    int rk = 0 ;
     
     if ( scene->pixelarray_single == NULL ) {
     
@@ -213,19 +165,79 @@ void JHGPixels_init( JHGPixels_scene scene )  {
             j = 0 ;
             while ( j < (scene->y ) ) {
                 
-                scene->pixelarray_single[rk] = scene->background.r ;
-                scene->pixelarray_single[rk + 1] = scene->background.g ;
-                scene->pixelarray_single[rk + 2] = scene->background.b ;
+                JHGPixels_SetPixel(scene, i, j, scene->background.r, scene->background.b, scene->background.g) ;
                 
                 j++;
-                rk += 3 ;
             }
             i++ ;
         }
     }
 }
 
-JHGPixels_scene JHGPixels_newscene( int x, int y, JHGPixelcolor_Object background, JHGarraytype arraytype ) {
+static void JHGPixels_INT_8_8_8_8_REV_BGRA( JHGRawData pixelarray_single, int rk, JHGsubpixel red, JHGsubpixel blue, JHGsubpixel green ) {
+    
+    pixelarray_single[rk] = blue ;
+    
+    pixelarray_single[rk + 1] = green ;
+    
+    pixelarray_single[rk + 2] = red ;
+    
+    pixelarray_single[rk + 3] = 0 ;
+}
+
+static void JHGPixels_BYTE_RGB( JHGRawData pixelarray_single, int rk, JHGsubpixel red, JHGsubpixel blue, JHGsubpixel green ) {
+    
+    pixelarray_single[rk] = red ;
+    
+    pixelarray_single[rk + 1] = green ;
+    
+    pixelarray_single[rk + 2] = blue ;
+}
+
+static void JHGPixels_BYTE_RBG( JHGRawData pixelarray_single, int rk, JHGsubpixel red, JHGsubpixel blue, JHGsubpixel green ) {
+    
+    pixelarray_single[rk] = red ;
+    
+    pixelarray_single[rk + 1] = blue ;
+    
+    pixelarray_single[rk + 2] = green ;
+}
+
+void JHGPixels_SetFormat( JHGPixels_scene scene, JHGPixelFormatType Format ) {
+    
+    switch (Format) {
+            
+            
+        case JHGBYTERGB:
+            
+            scene->Format = JHGPixels_BYTE_RGB ;
+            
+            scene->f_size = 3 ;
+            
+            break;
+            
+        case JHGBYTERBG:
+            
+            scene->Format = JHGPixels_BYTE_RBG ;
+            
+            scene->f_size = 3 ;
+            
+            break;
+            
+        case JHGINT8888REVBGRA:
+            
+            scene->Format = JHGPixels_INT_8_8_8_8_REV_BGRA ;
+            
+            scene->f_size = 4 ;
+            
+            break;
+            
+        default:
+            break;
+    }
+}
+
+JHGPixels_scene JHGPixels_newscene( int x, int y, JHGPixelcolor_Object background, JHGarraytype arraytype, JHGPixelFormatType Format ) {
     
     int i = 0 ;
     
@@ -234,6 +246,8 @@ JHGPixels_scene JHGPixels_newscene( int x, int y, JHGPixelcolor_Object backgroun
     newscene = (JHGPixels_scene) malloc(sizeof(JHGPixels_scene_object));
     
     if ( newscene == NULL ) return NULL ;
+    
+    JHGPixels_SetFormat(newscene,Format) ;
     
     newscene->x = x ;
     
@@ -263,7 +277,7 @@ JHGPixels_scene JHGPixels_newscene( int x, int y, JHGPixelcolor_Object backgroun
         
         newscene->pixelarray_double = NULL ;
         
-        newscene->pixelarray_single = (JHGRawData) malloc(newscene->x * (newscene->y * 3) ) ;
+        newscene->pixelarray_single = (JHGRawData) malloc(newscene->x * (newscene->y * newscene->f_size) ) ;
         
         if ( newscene->pixelarray_single == NULL ) return NULL ;
         
@@ -286,14 +300,10 @@ void JHGPixels_SetBackGroundColor(JHGPixels_scene scene, JHGsubpixel red, JHGsub
 
 void JHGPixels_SetPixel( JHGPixels_scene scene, int x, int y, JHGsubpixel red, JHGsubpixel blue, JHGsubpixel green ) {
     
-    int rk = ( x * 3 ) + ( y * scene->y * 3 ) ;
+    int rk = ( x * scene->f_size ) + ( y * scene->y * scene->f_size ) ;
     
-    scene->pixelarray_single[rk] = red ;
-    
-    scene->pixelarray_single[rk + 1] = green ;
-    
-    scene->pixelarray_single[rk + 2] = blue ;
-    
+    scene->Format(scene->pixelarray_single,rk,red,blue,green) ;
+
 }
 
 void JHGPixels_scenefree( JHGPixels_scene scene )  {
@@ -319,7 +329,7 @@ void JHGPixels_scenefree( JHGPixels_scene scene )  {
     free(scene) ;
 }
 
-JHGRawData JHG_DrawPixels(JHGPixels_scene pixelframe, int *x, int *y) {
+void* JHG_DrawPixels(JHGPixels_scene pixelframe, int *x, int *y) {
     
     *x = pixelframe->x ;
     

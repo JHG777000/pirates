@@ -266,7 +266,7 @@ static raster_scene new_r_scene( int width, int height ) {
     
     int raster_size = MAX_JHG(width, height) ;
     
-    JHGPixels_scene pixelscene = JHGPixels_newscene(raster_size, raster_size, *(codename_NewColorObject(0,0,0)), single_array) ;
+    JHGPixels_scene pixelscene = JHGPixels_newscene(raster_size, raster_size, *(codename_NewColorObject(0,0,0)), single_array,JHGINT8888REVBGRA) ;
     
     codename_scene codenamescene = codename_NewSceneObject(pixelscene, 0, 0) ;
     
@@ -310,7 +310,7 @@ IDKRawData IDK_Draw( IDKDrawArea area, int *x, int * y ) {
     
     area->drawfunc(area) ;
     
-    return JHG_DrawPixels(area->r_scene->pixelscene, x, y) ;
+    return (IDKRawData)JHG_DrawPixels(area->r_scene->pixelscene, x, y) ;
 }
 
 void IDK_SpawnThreads( IDKDrawArea area ) {

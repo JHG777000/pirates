@@ -11,6 +11,6 @@
 #define JHG_GL_GLTextures_h
 #include "GLBase.h"
 #include "JHGPixelslib.h"
-GLuint LoadTextureToOpenGL(JHGRawData rawdata, int x, int y, GLenum format, GLenum type) ;
+GLuint LoadTextureToOpenGL(JHGInt* rawdata, int x, int y, GLenum format, GLenum type) ;
 
 #endif

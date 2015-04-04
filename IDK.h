@@ -15,7 +15,7 @@
 
 typedef codename_scene raster_scene ;
 
-typedef JHGRawData IDKRawData ;
+typedef JHGInt* IDKRawData ;
 
 typedef struct { float red ; float blue ; float green  ; } IDKColor ;
 

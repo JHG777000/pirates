@@ -96,7 +96,7 @@ Copyright (C) 2010~2011 Apple Inc. All Rights Reserved.
 #include "GLBase.h"
 #include "JHGPixelslib.h"
 
-GLuint LoadTextureToOpenGL(JHGRawData rawdata, int x, int y, GLenum format, GLenum type) {
+GLuint LoadTextureToOpenGL(JHGInt* rawdata, int x, int y, GLenum format, GLenum type) {
     
     GLuint texName;
 	
@@ -116,7 +116,7 @@ GLuint LoadTextureToOpenGL(JHGRawData rawdata, int x, int y, GLenum format, GLen
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	
 	// Allocate and load image data into texture
-	glTexImage2D(GL_TEXTURE_2D, 0, format, x, y, 0, format, type, rawdata) ;
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, x, y, 0, format, type, rawdata) ;
     
     return texName;
     

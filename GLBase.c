@@ -143,7 +143,7 @@ void drawstuff(void) {
     IDKRawData rawdata = IDK_Draw(drawarea, &x, &y) ;
     
     // Build a texture object with our image data
-     _surfaceTexName = LoadTextureToOpenGL(rawdata, x, y, GL_RGB, GL_UNSIGNED_BYTE) ;
+     _surfaceTexName = LoadTextureToOpenGL(rawdata, x, y, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV) ;
 
     ///APPLE SAMPLE CODE///
     

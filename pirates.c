@@ -1032,7 +1032,7 @@ void pirates_bins_good_sort( pirates_bin bin, pirates_bins* new_bins, int* num_o
         
         boxes[i].x = box_xval ;
         
-        box_xval = boxes[i].X = ((box.X) / n) * (i+1) ;
+        box_xval = boxes[i].X = (((box.X) / n) * (i+1)) ;
         
         Groups[i] = NewGroup(boxes[i]) ;
         
