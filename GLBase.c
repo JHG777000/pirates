@@ -97,6 +97,8 @@ void startup(void) {
     
     drawarea = IDK_NewDrawArea(MyDrawArea, ResWidth, ResHeight) ;
     
+    pirates_init(drawarea) ;
+    
     //OpenGL start
     
     // We will always cull back faces for better performance

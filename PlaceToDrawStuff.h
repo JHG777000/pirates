@@ -10,4 +10,6 @@
 #define MacGLEssentials_PlaceToDrawStuff_h
 #include "IDK.h"
 void MyDrawArea( IDKDrawArea Area ) ;
+void pirates_init(IDKDrawArea Area) ;
+void pirates_shutdown(void) ;
 #endif
