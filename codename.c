@@ -1,5 +1,5 @@
 //
-//  codename.c -- 2D basic-vector graphics libary including some text support and graphing
+//  codename.c -- 2D basic-vector graphics libary including some text support
 //  
 //
 //  Created by Jacob Gordon on 6/2/12.

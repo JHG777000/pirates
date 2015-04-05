@@ -11,7 +11,7 @@
  */
 
 //File: RKMem.h
-//Header file for RKMem. Most of RKMem is macros, defined here.
+//Header file for RKMem.
 
 #ifndef RKLib_RKMem_h
 #define RKLib_RKMem_h

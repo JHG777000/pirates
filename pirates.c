@@ -1256,21 +1256,21 @@ float fracf(float x) {
     return x - floorf(x) ;
 }
 
-typedef struct { RKMath_NewVector(inv_dir, 3) ; int init ; } fast_bin_intersection_type ;
+//From: An Efficient and Robust Ray–Box Intersection Algorithm: http://www.cs.utah.edu/~awilliam/box/box.pdf
+
+typedef struct { RKMath_NewVector(inv_dir, 3) ; int sign[3] ; int init ; } fast_bin_intersection_type ;
 
 float fast_bin_intersection( Ray r, pirates_bin box, fast_bin_intersection_type* fbit_ptr ) {
     
-    RKMath_NewVector(tmin, 3) ;
-    
-    RKMath_NewVector(tmax, 3) ;
-    
-    RKMath_NewVector(t1, 3) ;
-    
-    RKMath_NewVector(t2, 3) ;
+    void* bounds[2] ;
     
     RKMath_Vectorit(boxmin, box->bounding_box.x, box->bounding_box.y, box->bounding_box.z) ;
     
     RKMath_Vectorit(boxmax, box->bounding_box.X, box->bounding_box.Y, box->bounding_box.Z) ;
+    
+    bounds[0] = boxmin ;
+    
+    bounds[1] = boxmax ;
     
     if ( !(fbit_ptr->init) ) {
         
@@ -1280,25 +1280,34 @@ float fast_bin_intersection( Ray r, pirates_bin box, fast_bin_intersection_type*
         
         RKMath_Div(fbit_ptr->inv_dir, one, r.direction, 3) ;
         
+        fbit_ptr->sign[0] = (fbit_ptr->inv_dir[RKM_X] < 0) ;
+        
+        fbit_ptr->sign[1] = (fbit_ptr->inv_dir[RKM_Y] < 0) ;
+        
+        fbit_ptr->sign[2] = (fbit_ptr->inv_dir[RKM_Z] < 0) ;
+        
         fbit_ptr->init++ ;
     }
     
-    RKMath_Sub(tmin, boxmin, r.origin, 3) ;
+    float tmin, tmax, tymin, tymax, tzmin, tzmax;
     
-    RKMath_Sub(tmax, boxmax, r.origin, 3) ;
+    tmin = (((RKMVector)bounds[fbit_ptr->sign[0]])[RKM_X] - r.origin[RKM_X]) * fbit_ptr->inv_dir[RKM_X];
+    tmax = (((RKMVector)bounds[1-fbit_ptr->sign[0]])[RKM_X] - r.origin[RKM_X]) * fbit_ptr->inv_dir[RKM_X];
+    tymin = (((RKMVector)bounds[fbit_ptr->sign[1]])[RKM_Y] - r.origin[RKM_Y]) * fbit_ptr->inv_dir[RKM_Y];
+    tymax = (((RKMVector)bounds[1-fbit_ptr->sign[1]])[RKM_Y] - r.origin[RKM_Y]) * fbit_ptr->inv_dir[RKM_Y];
+    if ( (tmin > tymax) || (tymin > tmax) )
+        return 0 ;
+    if (tymin > tmin)
+        tmin = tymin;
+    if (tymax < tmax)
+        tmax = tymax;
+    tzmin = (((RKMVector)bounds[fbit_ptr->sign[2]])[RKM_Z] - r.origin[RKM_Z]) * fbit_ptr->inv_dir[RKM_Z];
+    tzmax = (((RKMVector)bounds[1-fbit_ptr->sign[2]])[RKM_Z] - r.origin[RKM_Z]) * fbit_ptr->inv_dir[RKM_Z];
+    if ( (tmin > tzmax) || (tzmin > tmax) )
+        
+    return 0;
     
-    RKMath_Mul(tmin, tmin, fbit_ptr->inv_dir, 3) ;
-    
-    RKMath_Mul(tmax, tmax, fbit_ptr->inv_dir, 3) ;
-    
-    RKMath_MinMax(t1, t2, tmin, tmax, 3) ;
-    
-    float tNear = MAX_JHG(MAX_JHG(t1[RKM_X], t1[RKM_Y]), t1[RKM_Z]) ;
-    float tFar = MIN_JHG(MIN_JHG(t2[RKM_X], t2[RKM_Y]), t2[RKM_Z]) ;
-    
-    if ( (tNear > 0) && (tNear < tFar) ) return tNear ;
-    
-    return 0 ;
+    return 1 ;
 }
 
 float bin_intersection( Ray r, pirates_bin box ) {

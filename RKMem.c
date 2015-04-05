@@ -12,6 +12,7 @@
 
 //File: RKMem.c
 //RKMem, provides some nice macros and a funtion to make dealling with memory a little easier in C.
+//Also, provides a double linked-list implementation, RKList.
 
 #include <stdlib.h>
 #include <string.h>
