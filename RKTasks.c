@@ -30,7 +30,9 @@ struct RKTasks_Task_s { RKT_Lock task_lock ; RKTasks_ThisTask ThisTask ; int act
     
 void (*TaskFunc)(void *, struct RKTasks_ThisTask_s *) ; void *TaskArgs ; RKTasks_Tasklet list_node ; int task_run_id ; } ;
 
-struct RKTasks_TaskGroup_s { RKT_Lock task_group_lock ; RKT_Lock done_tasks_lock ; RKTasks_TaskList TaskList ; int NumOfDoneTasks ; int NumOfTasks ; int init ;
+struct RKTasks_TaskGroup_s { RKT_Lock task_group_lock ; pthread_cond_t done_tasks_cond ; RKT_Lock done_tasks_lock ;
+
+RKTasks_TaskList TaskList ; int NumOfDoneTasks ; int NumOfTasks ; int init ;
     
 int group_run_id ; } ;
 
@@ -178,6 +180,8 @@ RKTasks_TaskGroup RKTasks_NewTaskGroup( void ) {
     RKTasks_StartLock(NewGroup->task_group_lock) ;
     
     RKTasks_StartLock(NewGroup->done_tasks_lock) ;
+    
+    pthread_cond_init(&NewGroup->done_tasks_cond, NULL);
     
     return NewGroup ;
     
@@ -377,6 +381,8 @@ static void *RKTasks_WorkerThread( void *argument ) {
                 
                 TaskGroup->NumOfDoneTasks++ ;
                 
+                if (TaskGroup->NumOfTasks <= TaskGroup->NumOfDoneTasks) pthread_cond_signal(&TaskGroup->done_tasks_cond) ;
+                
                 RKTasks_UnLockLock(TaskGroup->done_tasks_lock) ;
 
             }
@@ -530,11 +536,17 @@ int RKTasks_AllTasksDone( RKTasks_TaskGroup TaskGroup ) {
 
 void RKTasks_WaitForTasksToBeDone( RKTasks_TaskGroup TaskGroup ) {
     
+    RKTasks_LockLock(TaskGroup->done_tasks_lock) ;
+    
     while (1) {
         
-      if ( RKTasks_AllTasksDone(TaskGroup) ) break ;
+       pthread_cond_wait(&TaskGroup->done_tasks_cond, &TaskGroup->done_tasks_lock) ;
+        
+        break ;
         
     }
+    
+    RKTasks_UnLockLock(TaskGroup->done_tasks_lock) ;
 }
 
 int RKTasks_AllThreadsDead( RKTasks_ThreadGroup ThreadGroup ) {

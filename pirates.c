@@ -1289,23 +1289,31 @@ float fast_bin_intersection( Ray r, pirates_bin box, fast_bin_intersection_type*
         fbit_ptr->init++ ;
     }
     
-    float tmin, tmax, tymin, tymax, tzmin, tzmax;
+    float tmin, tmax, tymin, tymax, tzmin, tzmax ;
     
-    tmin = (((RKMVector)bounds[fbit_ptr->sign[0]])[RKM_X] - r.origin[RKM_X]) * fbit_ptr->inv_dir[RKM_X];
-    tmax = (((RKMVector)bounds[1-fbit_ptr->sign[0]])[RKM_X] - r.origin[RKM_X]) * fbit_ptr->inv_dir[RKM_X];
-    tymin = (((RKMVector)bounds[fbit_ptr->sign[1]])[RKM_Y] - r.origin[RKM_Y]) * fbit_ptr->inv_dir[RKM_Y];
-    tymax = (((RKMVector)bounds[1-fbit_ptr->sign[1]])[RKM_Y] - r.origin[RKM_Y]) * fbit_ptr->inv_dir[RKM_Y];
+    tmin = (((RKMVector)bounds[fbit_ptr->sign[0]])[RKM_X] - r.origin[RKM_X]) * fbit_ptr->inv_dir[RKM_X] ;
+    
+    tmax = (((RKMVector)bounds[1-fbit_ptr->sign[0]])[RKM_X] - r.origin[RKM_X]) * fbit_ptr->inv_dir[RKM_X] ;
+    
+    tymin = (((RKMVector)bounds[fbit_ptr->sign[1]])[RKM_Y] - r.origin[RKM_Y]) * fbit_ptr->inv_dir[RKM_Y] ;
+    
+    tymax = (((RKMVector)bounds[1-fbit_ptr->sign[1]])[RKM_Y] - r.origin[RKM_Y]) * fbit_ptr->inv_dir[RKM_Y] ;
+    
     if ( (tmin > tymax) || (tymin > tmax) )
         return 0 ;
+    
     if (tymin > tmin)
-        tmin = tymin;
+        tmin = tymin ;
+    
     if (tymax < tmax)
-        tmax = tymax;
-    tzmin = (((RKMVector)bounds[fbit_ptr->sign[2]])[RKM_Z] - r.origin[RKM_Z]) * fbit_ptr->inv_dir[RKM_Z];
-    tzmax = (((RKMVector)bounds[1-fbit_ptr->sign[2]])[RKM_Z] - r.origin[RKM_Z]) * fbit_ptr->inv_dir[RKM_Z];
+        tmax = tymax ;
+    
+    tzmin = (((RKMVector)bounds[fbit_ptr->sign[2]])[RKM_Z] - r.origin[RKM_Z]) * fbit_ptr->inv_dir[RKM_Z] ;
+    
+    tzmax = (((RKMVector)bounds[1-fbit_ptr->sign[2]])[RKM_Z] - r.origin[RKM_Z]) * fbit_ptr->inv_dir[RKM_Z] ;
+    
     if ( (tmin > tzmax) || (tzmin > tmax) )
-        
-    return 0;
+    return 0 ;
     
     return 1 ;
 }

@@ -30,7 +30,7 @@ void pirates_init(IDKDrawArea Area) {
     
     RKMath_Vectorit(focus, 0.0, 0.0, 0.0) ;
     
-    scene3d = pirates_new_scene(Area, 1, 1000000.0f, position, focus, 512, 512, 1, 35, 1) ;
+    scene3d = pirates_new_scene(Area, 0, 1000000.0f, position, focus, 512, 512, 1, 35, 1) ;
     
     pirates_Material blue = pirates_newmaterial(Colorit(0.0, 1.0, 0.0)) ;
     
