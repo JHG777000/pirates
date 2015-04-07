@@ -864,6 +864,8 @@ void pirates_proc_scene( pirates_scene scene ) {
         node = RKList_GetNextNode(node) ;
     }
     
+    if (!scene->box_init) {
+    
       node = RKList_GetFirstNode(scene->primitive_list) ;
     
       while ( node != NULL ) {
@@ -874,6 +876,8 @@ void pirates_proc_scene( pirates_scene scene ) {
         
           node = RKList_GetNextNode(node) ;
       }
+    
+    }
     
     pirates_createbins(scene) ;
     
@@ -1592,13 +1596,13 @@ void pirates_render(pirates_scene scene) {
         
     RKTasks_Args(pirates_render_task) ;
         
+        RKTasks_UseArgs(pirates_render_task,0) ;
+        
+        pirates_render_task_Args->scene = scene ;
+        
+        pirates_render_task_Args->num_of_tasks = num_of_tasks ;
+        
         while (i < num_of_tasks) {
-            
-            RKTasks_UseArgs(pirates_render_task) ;
-            
-            pirates_render_task_Args->scene = scene ;
-            
-            pirates_render_task_Args->num_of_tasks = num_of_tasks ;
             
             RKTasks_AddTask(scene->TaskGroup, pirates_render_task, pirates_render_task_Args) ;
             

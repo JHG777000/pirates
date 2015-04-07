@@ -55,7 +55,7 @@ int RKTasks_CloseLock( RKT_Lock* lock ) ;
 
 int RKTasks_OpenLock( RKT_Lock* lock ) ;
 
-#define RKTasks_CreateTask(TaskName, Args, FuncSpace) typedef struct {Args} TaskName ## _argstruct ; \
+#define RKTasks_CreateTask(TaskName, Args, FuncSpace) typedef struct {int kill_all ; Args} TaskName ## _argstruct ; \
 typedef TaskName ## _argstruct* TaskName ## _argstruct_ptr ;\
 static void TaskName( void *argument, RKTasks_ThisTask ThisTask ) { \
 TaskName ## _argstruct_ptr RKTArgs = (TaskName ## _argstruct_ptr) argument ; \
@@ -66,7 +66,8 @@ FuncSpace \
 
 #define RKTasks_Args( TaskName ) TaskName ## _argstruct_ptr TaskName ## _Args = NULL
 
-#define RKTasks_UseArgs( TaskName ) TaskName ## _Args = RKMem_CArray(1, TaskName ## _argstruct)
+#define RKTasks_UseArgs( TaskName, delete ) TaskName ## _Args = RKMem_CArray(1, TaskName ## _argstruct); \
+TaskName ## _Args->kill_all = delete
 
 #define RKTasks_AddTask(TaskGroup, TaskFunc, TaskArgs) RKTasks_AddTask_Func(TaskGroup, TaskFunc, (void*)TaskArgs)
 

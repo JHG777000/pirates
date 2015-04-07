@@ -187,11 +187,17 @@ RKTasks_TaskGroup RKTasks_NewTaskGroup( void ) {
     
 }
 
+typedef struct { int kill_all ; } TaskArgs_Type ;
+
+typedef TaskArgs_Type* TaskArgs_Type_ptr ;
+
 void RKTasks_KillTaskGroup( RKTasks_TaskGroup TaskGroup ) {
     
     RKTasks_Task Task = NULL ;
     
     RKTasks_Tasklet Tasklet = RKList_GetFirstNode(TaskGroup->TaskList) ;
+    
+    int kill_all = 0 ;
     
     while ( Tasklet != NULL ) {
         
@@ -199,7 +205,22 @@ void RKTasks_KillTaskGroup( RKTasks_TaskGroup TaskGroup ) {
         
         RKTasks_EndLock(Task->task_lock) ;
         
-        free(Task->TaskArgs) ;
+        if ( kill_all != -1 ) {
+        
+        kill_all = ((TaskArgs_Type_ptr)Task->TaskArgs)->kill_all ;
+        
+        if (kill_all) {
+            
+            free(Task->TaskArgs) ;
+            
+        } else {
+            
+            kill_all = -1 ;
+            
+            free(Task->TaskArgs) ;
+        }
+        
+        }
         
         free(Task->ThisTask) ;
         
