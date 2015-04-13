@@ -172,11 +172,13 @@ void pirates_add_sphere( pirates_spheres* sphere_array, int* numspheres, pirates
 
 pirates_bounding_box pirates_compute_triangle_bounding_box( pirates_triangle triangle ) ;
 
-void pirates_change_camera(pirates_scene scene, float x, float y, float z) ;
+void pirates_change_camera(pirates_scene scene, float x, float y, float z, float fx, float fy, float fz) ;
 
 void pirates_createbins(pirates_scene scene) ;
 
 void pirates_destroy_bins( pirates_scene scene ) ;
+
+int pirates_triangle_size( void ) ;
 
 pirates_primitive_array pirates_new_primitive_array( void* primitive_data ) ;
 

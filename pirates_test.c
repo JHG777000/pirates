@@ -77,7 +77,7 @@ void pirates_teststuff(IDKDrawArea Area) {
     
     if ( IDK_GetRightMouseButton() ) ypos += 0.01 ;
     
-    pirates_change_camera(scene3d,xpos,ypos,zpos) ;
+    pirates_change_camera(scene3d,xpos,ypos,zpos,0,0,0) ;
     
     static float xpos2, ypos2, zpos2 = 0 ;
     

@@ -177,13 +177,13 @@ pirates_scene pirates_new_scene( piretes2d_scene scene, int debug, double draw_d
     return new_scene ;
 }
 
-void pirates_change_camera(pirates_scene scene, float x, float y, float z) {
+void pirates_change_camera(pirates_scene scene, float x, float y, float z, float fx, float fy, float fz) {
     
     freecam(scene->Camera) ;
     
     RKMath_Vectorit(position, 0.1 + x, 0.1 + y, -12.0 + z) ;
     
-    RKMath_Vectorit(focus, 0.0, 0.0, 0.0) ;
+    RKMath_Vectorit(focus, fx, fy, fz) ;
     
     scene->Camera = newcam(position, focus) ;
     
@@ -471,6 +471,11 @@ static pirates_bounding_box pirates_triangle_bounding_box_func(void* data) {
     pirates_triangle triangle = (pirates_triangle)data ;
     
     return pirates_compute_triangle_bounding_box(triangle) ;
+}
+
+int pirates_triangle_size( void ) {
+    
+    return 11 ;
 }
 
 void pirates_make_triangle_primitive( pirates_scene scene, pirates_primitive_array primitive_array, pirates_volume volume, pirates_bounding_box bounding_box ) {
