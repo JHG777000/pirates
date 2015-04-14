@@ -14,6 +14,8 @@
 
 typedef enum { pirates3d_copy_data = 1, pirates3d_dont_copy_data = 0, pirates3d_dont_copy_but_delete_data = 1 } pirates3d_copy_mode ;
 
+typedef enum { Rotation, Scale, Translate } pirates3d_transform_type ;
+
 typedef enum { Triangles } pirates3d_primitive_type ;
 
 typedef int pirates3d_material ;

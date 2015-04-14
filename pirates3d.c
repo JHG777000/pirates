@@ -10,11 +10,9 @@
 #include <stdlib.h>
 #include "pirates3d.h"
 
-typedef enum { Rotation, Scale, Translate } pirates3d_transform_type ;
+struct pirates3d_transform_entity_s { pirates3d_transform_type transform ; RKMath_NewVector(Transform, 4) ; }  ;
 
-struct pirates3d_entity_transform_s { pirates3d_transform_type transform ; RKMath_NewVector(Transform, 4) ; }  ;
-
-typedef struct pirates3d_entity_transform_s* pirates3d_entity_transform ;
+typedef struct pirates3d_transform_entity_s* pirates3d_transform_entity ;
 
 struct pirates3d_camera_s { int active ; RKMath_NewVector(Position, 3) ; RKMath_NewVector(Focus, 3) ; } ;
 
@@ -23,6 +21,100 @@ struct pirates3d_primitive_array_s { pirates3d_primitive_type primitive_type ; i
 pirates_primitive_array primitive_array ; } ;
 
 struct pirates3d_scene_s { pirates3d_camera camera ; pirates_scene scene_rt ; }  ;
+
+pirates3d_transform pirates3d_new_transform( void ) {
+    
+    return RKList_NewList() ;
+}
+
+static void pirates3d_apply_transform_to_transform_list( pirates3d_transform_entity transform, pirates3d_transform transform_list) {
+    
+    if ( transform->transform == Rotation ) {
+        
+        RKMath_NewVector(AxisAngle, 4) ;
+        
+        RKMath_Equal(AxisAngle, transform->Transform, 4) ;
+        
+        double radians = (AxisAngle[3] / 180) * M_PI;
+        
+        float value = sin( radians / 2 ) ;
+        
+        RKMath_Vectorthat(value_vec, value) ;
+        
+        RKMath_Equal(transform->Transform, value_vec, 3) ;
+        
+        RKMath_Mul(transform->Transform, transform->Transform, AxisAngle, 3) ;
+        
+        transform->Transform[3] = cos( radians / 2 ) ;
+    }
+    
+    if ( RKList_GetNumOfNodes(transform_list) == 0 ) {
+        
+        RKList_AddToList(transform_list, (void*)transform) ;
+        
+        return ;
+    }
+    
+    pirates3d_transform_entity old_transform = (pirates3d_transform_entity)RKList_GetData(RKList_GetLastNode(transform_list)) ;
+    
+    if ( transform->transform == old_transform->transform ) {
+        
+        RKMVector v0 = old_transform->Transform ;
+        
+        RKMVector v1 = transform->Transform ;
+        
+        switch (transform->transform) {
+                
+            case Rotation:
+                
+                v0[0] = v0[3] * v1[0] + v0[0] * v1[3] + v0[1] * v1[2] - v0[2] * v1[1];
+                v0[1] = v0[3] * v1[1] + v0[1] * v1[3] + v0[2] * v1[0] - v0[0] * v1[2];
+                v0[2] = v0[3] * v1[2] + v0[2] * v1[3] + v0[0] * v1[1] - v0[1] * v1[0];
+                v0[3] = v0[3] * v1[3] - v0[0] * v1[0] - v0[1] * v1[1] - v0[2] * v1[2];
+                
+                RKMath_Norm(v0, v0, 4) ;
+                
+                break;
+                
+            case Scale:
+                
+                RKMath_Mul(v0, v0, v1, 3) ;
+                
+                break;
+                
+            case Translate:
+                
+                RKMath_Add(v0, v0, v1, 3) ;
+                
+                break;
+                
+            default:
+                break;
+        }
+        
+        
+    } else {
+        
+        RKList_AddToList(transform_list, (void*)transform) ;
+    }
+}
+
+void pirates3d_add_transform( pirates3d_transform transform, pirates3d_transform_type transform_type, float x, float y, float z, float w ) {
+    
+    pirates3d_transform_entity transform_entity = RKMem_NewMemOfType(struct pirates3d_transform_entity_s) ;
+    
+    transform_entity->transform = transform_type ;
+    
+    transform_entity->Transform[0] = x ;
+    
+    transform_entity->Transform[1] = y ;
+    
+    transform_entity->Transform[2] = z ;
+    
+    transform_entity->Transform[3] = w ;
+    
+    pirates3d_apply_transform_to_transform_list(transform_entity,transform) ;
+}
 
 pirates3d_scene pirates3d_new_3dscene( pirates_scene scene_rt ) {
     
