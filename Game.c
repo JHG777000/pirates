@@ -56,7 +56,7 @@ void GameRun( IDKDrawArea Area ) {
     
     if (!init) GameInit(Area) ;
 
-    pirates3d_add_transform(transform, Rotation, 0, 1, 0, 30) ;
+    pirates3d_add_transform(transform, Rotation, 0, 1, 0, 1) ;
     
     pirates3d_apply_transform(transform, primitive_array) ;
     

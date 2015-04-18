@@ -335,7 +335,7 @@ pirates3d_primitive_array pirates3d_new_primitive_array( pirates3d_scene scene3d
         
         RKMath_Equal(primitive, (RKMVector)primitive_data, size) ;
         
-    } else if ( copy_mode == (pirates3d_dont_copy_data || pirates3d_dont_copy_but_delete_data) ) {
+    } else if ( (copy_mode == pirates3d_dont_copy_data) || (copy_mode == pirates3d_dont_copy_but_delete_data) ) {
         
         primitive = (RKMVector)primitive_data ;
     }
