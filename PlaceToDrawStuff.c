@@ -88,12 +88,16 @@ void MyDrawArea( IDKDrawArea Area ) {
     } else {
         
     void pirates_teststuff(IDKDrawArea Area) ;
-      
+     
+    void GameRun( IDKDrawArea Area ) ;
+        
     IDK_DisableRefresh() ;
     
     IDK_SpawnThreads(Area) ;
         
-    pirates_teststuff(Area) ;
+    //pirates_teststuff(Area) ;
+    
+    GameRun(Area) ;
         
     }
     

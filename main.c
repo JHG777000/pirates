@@ -44,7 +44,7 @@ void initScene(int x, int y) {
 
 static void WhyMe( int status ) {
     
-    pirates_shutdown() ;
+    //pirates_shutdown() ;
     
     JHGPixels_destroywindow();
     

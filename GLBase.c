@@ -97,7 +97,7 @@ void startup(void) {
     
     drawarea = IDK_NewDrawArea(MyDrawArea, ResWidth, ResHeight) ;
     
-    pirates_init(drawarea) ;
+    //pirates_init(drawarea) ;
     
     //OpenGL start
     

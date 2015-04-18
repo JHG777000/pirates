@@ -28,4 +28,26 @@ typedef struct pirates3d_camera_s* pirates3d_camera ;
 
 typedef struct pirates3d_scene_s* pirates3d_scene ;
 
+pirates3d_camera pirates3d_new_camera( float x, float y, float z, float fx, float fy, float fz ) ;
+
+pirates3d_scene pirates3d_new_3dscene( pirates3d_camera camera, pirates_scene scene_rt ) ;
+
+void pirates3d_destroy_3dscene( pirates3d_scene scene3d ) ;
+
+void pirates3d_draw_3dscene( pirates3d_scene scene3d ) ;
+
+pirates3d_transform pirates3d_new_transform( void ) ;
+
+void pirates3d_add_transform( pirates3d_transform transform, pirates3d_transform_type transform_type, float x, float y, float z, float w ) ;
+
+void pirates3d_delete_last_transform( pirates3d_transform transform ) ;
+
+void pirates3d_apply_transform( pirates3d_transform transform, pirates3d_primitive_array primitive_array ) ;
+
+int pirates3d_get_primitive_size( pirates3d_primitive_type primitive_type ) ;
+
+pirates3d_primitive_array pirates3d_new_primitive_array( pirates3d_scene scene3d, void* primitive_data, pirates3d_primitive_type primitive_type, pirates3d_copy_mode copy_mode, int num_of_primitives ) ;
+
+void pirates3d_destroy_primitive_array( pirates3d_primitive_array primitive_array ) ;
+
 #endif /* defined(__IDKApp__pirates3d__) */
