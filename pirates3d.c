@@ -37,6 +37,20 @@ pirates3d_camera pirates3d_new_camera( float x, float y, float z, float fx, floa
     return new_cam ;
 }
 
+void pirates3d_set_camera_to_active( pirates3d_scene scene3d, pirates3d_camera camera ) {
+    
+    scene3d->camera->active = 0 ;
+    
+    scene3d->camera = camera ;
+    
+    camera->active = 0 ;
+}
+
+int pirates3d_is_camera_active( pirates3d_camera camera ) {
+    
+    return camera->active ;
+}
+
 pirates3d_transform pirates3d_new_transform( void ) {
     
     return RKList_NewList() ;
@@ -131,7 +145,7 @@ void pirates3d_add_transform( pirates3d_transform transform, pirates3d_transform
     pirates3d_apply_transform_to_transform_list(transform_entity,transform) ;
 }
 
-void pirates3d_delete_last_transform( pirates3d_transform transform ) {
+void pirates3d_delete_last_transform_set( pirates3d_transform transform ) {
     
     RKList_node node = RKList_GetLastNode(transform) ;
     

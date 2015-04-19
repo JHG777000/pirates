@@ -33,9 +33,9 @@ void Ray_position(RKMVector retvec, Ray ray, float distance) ;
 struct pirates_scene_s ;
 
 //Raycam
-typedef struct {RKMVector position ; RKMVector direction ; } Raycam_object ;
+typedef struct { RKMath_NewVector(position, 3) ; RKMath_NewVector(direction, 3) ; } Raycam_object ;
 typedef Raycam_object* Raycam ;
-Raycam newcam(RKMVector position, RKMVector focus) ;
+
 void freecam( Raycam cam ) ;
 Ray CastRay(struct pirates_scene_s* scene, Raycam raycam, float x, float y) ;
 
@@ -173,6 +173,10 @@ void pirates_add_sphere( pirates_spheres* sphere_array, int* numspheres, pirates
 pirates_bounding_box pirates_compute_triangle_bounding_box( pirates_triangle triangle ) ;
 
 void pirates_change_camera(pirates_scene scene, float x, float y, float z, float fx, float fy, float fz) ;
+
+Raycam pr_newcam(RKMVector position, RKMVector focus) ;
+
+void pr_usecam(Raycam raycam, RKMVector position, RKMVector focus) ;
 
 void pirates_createbins(pirates_scene scene) ;
 

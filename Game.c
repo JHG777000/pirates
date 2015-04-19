@@ -38,7 +38,7 @@ void GameInit( IDKDrawArea Area ) {
     
     red_id = pirates_addmaterial(scene_rt, red) ;
     
-    camera = pirates3d_new_camera(0.1, 0.1 , -12.0, 0.0, 0.0, 0.0 ) ;
+    camera = pirates3d_new_camera(0, 0, 0, 0, 0, 0) ;
     
     scene3d = pirates3d_new_3dscene(camera,scene_rt) ;
     
@@ -48,6 +48,10 @@ void GameInit( IDKDrawArea Area ) {
     
     transform = pirates3d_new_transform() ;
     
+    pirates3d_add_transform(transform, Rotation, 0, 1, 0, 1) ;
+    
+    pirates3d_add_transform(transform, Rotation, 1, 0, 0, 1) ;
+    
     init++ ;
     
 }
@@ -55,12 +59,8 @@ void GameInit( IDKDrawArea Area ) {
 void GameRun( IDKDrawArea Area ) {
     
     if (!init) GameInit(Area) ;
-
-    pirates3d_add_transform(transform, Rotation, 0, 1, 0, 1) ;
     
     pirates3d_apply_transform(transform, primitive_array) ;
-    
-    pirates3d_delete_last_transform(transform) ;
     
     pirates3d_draw_3dscene(scene3d) ;
 }

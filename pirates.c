@@ -142,7 +142,7 @@ pirates_scene pirates_new_scene( piretes2d_scene scene, int debug, double draw_d
     
     new_scene->draw_distance = draw_distance ;
     
-    new_scene->Camera = newcam(position, focus) ;
+    new_scene->Camera = pr_newcam(position, focus) ;
     
     new_scene->res_x = res_x ;
     
@@ -179,13 +179,11 @@ pirates_scene pirates_new_scene( piretes2d_scene scene, int debug, double draw_d
 
 void pirates_change_camera(pirates_scene scene, float x, float y, float z, float fx, float fy, float fz) {
     
-    freecam(scene->Camera) ;
-    
-    RKMath_Vectorit(position, 0.1 + x, 0.1 + y, -12.0 + z) ;
+    RKMath_Vectorit(position,  x, y, z) ;
     
     RKMath_Vectorit(focus, fx, fy, fz) ;
     
-    scene->Camera = newcam(position, focus) ;
+    pr_usecam(scene->Camera, position, focus) ;
     
 }
 
@@ -1203,31 +1201,25 @@ void Ray_position(RKMVector retvec, Ray ray, float distance) {
     RKMath_Add(retvec, ray.origin, mulvec, 3) ;
 }
 
-Raycam newcam(RKMVector position, RKMVector focus) {
+Raycam pr_newcam(RKMVector position, RKMVector focus) {
     
-    Raycam newraycam ;
-    
-    newraycam = (Raycam) malloc(sizeof(Raycam_object)) ;
-    
-    newraycam->position = RKMath_NewVectorMalloc(3) ;
-    
-    RKMath_VectorCopy(newraycam->position, position) ;
-    
-    newraycam->direction = RKMath_NewVectorMalloc(3) ;
-    
-    RKMath_Sub(newraycam->direction, position, focus, 3) ;
-    
-    RKMath_Norm(newraycam->direction, newraycam->direction, 3) ;
+    Raycam newraycam = (Raycam) malloc(sizeof(Raycam_object)) ;
     
     return newraycam ;
+}
+
+void pr_usecam(Raycam raycam, RKMVector position, RKMVector focus) {
     
+    RKMath_Vectorit(vec, 0.1, 0.1, -12.0) ;
+    
+    RKMath_Add(raycam->position, position, vec, 3) ;
+    
+    RKMath_Sub(raycam->direction, raycam->position, focus, 3) ;
+    
+    RKMath_Norm(raycam->direction, raycam->direction, 3) ;
 }
 
 void freecam( Raycam cam ) {
-    
-    free( cam->position ) ;
-    
-    free( cam->direction ) ;
     
     free( cam ) ;
 }
