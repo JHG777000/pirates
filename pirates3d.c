@@ -420,7 +420,7 @@ static pr_letter* PR_NewAlphabet( void ) {
     
     int i = 0 ;
     
-    while ( i <  size ) {
+    while ( i < size ) {
         
         pr_alphabet[i].m_id = 1 ;
         
@@ -506,21 +506,68 @@ static int PR_GetSetM_ID( pirates3d_scene scene3d, pr_string symbol, int m_id ) 
     
 }
 
+static void pirates3d_apply_material_to_triangles( pirates3d_material material, pirates3d_primitive_array primitive_array ) {
+    
+    int i = 0 ;
+    
+    pirates_triangles triangles = NULL ;
+    
+    pirates_triangle triangle = NULL ;
+    
+    triangles = (pirates_triangles)primitive_array->primitive_array[0] ;
+    
+    while ( i < primitive_array->num_of_primitives ) {
+        
+        triangle = pr_gettriangle(triangles, i) ;
+        
+        triangle[pr_M] = material ;
+        
+        i++ ;
+    }
+}
+
+void pirates3d_apply_material( pirates3d_material material, pirates3d_primitive_array primitive_array )  {
+    
+    switch (primitive_array->primitive_type) {
+            
+        case Triangles:
+            pirates3d_apply_material_to_triangles(material,primitive_array) ;
+            break;
+            
+        default:
+            break;
+    }
+    
+}
+
 pirates3d_material pirates3d_new_material( pirates3d_scene scene3d, pirates3d_material_label label, float red, float blue, float green ) {
     
     pirates_Material material = pirates_newmaterial(Colorit(red, blue, green)) ;
     
     int m_id = pirates_addmaterial(scene3d->scene_rt, material) ;
     
-    return PR_GetSetM_ID(scene3d,  label, m_id) ;
+    return PR_GetSetM_ID(scene3d, label, m_id) ;
 }
 
 pirates3d_material pirates3d_get_material( pirates3d_scene scene3d, pirates3d_material_label label ) {
     
-    return PR_GetSetM_ID(scene3d,  label, -1) ;
+    return PR_GetSetM_ID(scene3d, label, -1) ;
 }
 
-pirates3d_material pirates3d_change_material( pirates3d_scene scene3d, pirates3d_material_label label, float red, float blue, float green ) {
+pirates3d_material pirates3d_change_material( pirates3d_scene scene3d, pirates3d_material material, float red, float blue, float green ) {
+    
+    pirates_Material _material_ = pirates_get_material_with_id(scene3d->scene_rt, material) ;
+    
+    _material_->color.r = red ;
+    
+    _material_->color.b = blue ;
+    
+    _material_->color.g = green ;
+    
+    return material ;
+}
+
+pirates3d_material pirates3d_change_material_with_label( pirates3d_scene scene3d, pirates3d_material_label label, float red, float blue, float green ) {
     
     int m_id = PR_GetSetM_ID(scene3d, label, -1) ;
     

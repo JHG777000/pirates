@@ -30,21 +30,17 @@ void GameInit( IDKDrawArea Area ) {
     
     pirates_scene scene_rt = pirates_new_scene(Area, 0, 1000000.0f, position, focus, 512, 512, 1, 35, 1) ;
     
-    pirates_Material blue = pirates_newmaterial(Colorit(0.0, 1.0, 0.0)) ;
-    
-    pirates_Material red = pirates_newmaterial(Colorit(1.0, 0.0, 0.0)) ;
-    
-    blue_id = pirates_addmaterial(scene_rt, blue) ;
-    
-    red_id = pirates_addmaterial(scene_rt, red) ;
-    
     camera = pirates3d_new_camera(0, 0, 0, 0, 0, 0) ;
     
     scene3d = pirates3d_new_3dscene(camera,scene_rt) ;
     
-    float data[11] = { 0.0, 0.0, 0.9, 0.35, 0.35, 0.7, -0.35, 0.35, -0.7, red_id, 1 } ;
+    pirates3d_material red = pirates3d_new_material(scene3d, "red", 1, 0, 0) ;
+    
+    float data[11] = { 0.0, 0.0, 0.9, 0.35, 0.35, 0.7, -0.35, 0.35, -0.7, 0, 1 } ;
 
     primitive_array = pirates3d_new_primitive_array(scene3d, data, Triangles, pirates3d_copy_data, 1) ;
+    
+    pirates3d_apply_material(red, primitive_array) ;
     
     transform = pirates3d_new_transform() ;
     
