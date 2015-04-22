@@ -1374,6 +1374,11 @@ pirates_Material pirates_get_material(pirates_scene scene, pirates_triangle tria
     return scene->materials[(int)(triangle[pr_M] - 1 )] ;
 }
 
+pirates_Material pirates_get_material_with_id(pirates_scene scene, int m_id) {
+    
+    return scene->materials[m_id - 1] ;
+}
+
 hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
     
     FastList primitive_node ;

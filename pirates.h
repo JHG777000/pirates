@@ -178,6 +178,8 @@ Raycam pr_newcam(RKMVector position, RKMVector focus) ;
 
 void pr_usecam(Raycam raycam, RKMVector position, RKMVector focus) ;
 
+pirates_Material pirates_get_material_with_id(pirates_scene scene, int m_id) ;
+
 void pirates_createbins(pirates_scene scene) ;
 
 void pirates_destroy_bins( pirates_scene scene ) ;

@@ -12,6 +12,10 @@
 #include <stdio.h>
 #include "pirates.h"
 
+typedef const char* pirates3d_material_label ;
+
+typedef int pirates3d_material ;
+
 typedef enum { pirates3d_copy_data = 1, pirates3d_dont_copy_data = 0, pirates3d_dont_copy_but_delete_data = 1 } pirates3d_copy_mode ;
 
 typedef enum { Rotation, Scale, Translate } pirates3d_transform_type ;
@@ -33,6 +37,12 @@ pirates3d_camera pirates3d_new_camera( float x, float y, float z, float fx, floa
 void pirates3d_set_camera_to_active( pirates3d_scene scene3d, pirates3d_camera camera ) ;
 
 int pirates3d_is_camera_active( pirates3d_camera camera ) ;
+
+pirates3d_material pirates3d_new_material( pirates3d_scene scene3d, pirates3d_material_label label, float red, float blue, float green ) ;
+
+pirates3d_material pirates3d_get_material( pirates3d_scene scene3d, pirates3d_material_label label ) ;
+
+pirates3d_material pirates3d_change_material( pirates3d_scene scene3d, pirates3d_material_label label, float red, float blue, float green ) ;
 
 pirates3d_scene pirates3d_new_3dscene( pirates3d_camera camera, pirates_scene scene_rt ) ;
 

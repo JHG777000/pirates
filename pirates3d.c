@@ -8,7 +8,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "pirates3d.h"
+
+#define PR_MAX_PR_LETTER_NUM 65
+
+typedef const char* pr_string ;
+
+typedef struct pr_letter_s { int m_id ; struct pr_letter_s* next_alphabet ; } pr_letter ;
 
 struct pirates3d_transform_entity_s { pirates3d_transform_type transform ; RKMath_NewVector(Transform, 4) ; }  ;
 
@@ -20,7 +27,7 @@ struct pirates3d_primitive_array_s { pirates3d_primitive_type primitive_type ; i
     
 pirates_primitive_array primitive_array ; } ;
 
-struct pirates3d_scene_s { pirates3d_camera camera ; pirates_scene scene_rt ; }  ;
+struct pirates3d_scene_s { pirates3d_camera camera ; pr_letter* pirates3d_material_library ; pirates_scene scene_rt ; }  ;
 
 pirates3d_camera pirates3d_new_camera( float x, float y, float z, float fx, float fy, float fz ) {
     
@@ -43,12 +50,489 @@ void pirates3d_set_camera_to_active( pirates3d_scene scene3d, pirates3d_camera c
     
     scene3d->camera = camera ;
     
-    camera->active = 0 ;
+    camera->active = 1 ;
 }
 
 int pirates3d_is_camera_active( pirates3d_camera camera ) {
     
     return camera->active ;
+}
+
+static int PR_LookUpCharID( char c ) {
+    
+    switch (c) {
+        case 'A':
+            
+            return 1 ;
+            
+            break;
+        case 'B':
+            
+            return 2 ;
+            
+            break;
+        case 'C':
+            
+            return 3 ;
+            
+            break;
+        case 'D':
+            
+            return 4 ;
+            
+            break;
+        case 'E':
+            
+            return 5 ;
+            
+            break;
+        case 'F':
+            
+            return 6 ;
+            
+            break;
+        case 'G':
+            
+            return 7 ;
+            
+            break;
+        case 'H':
+            
+            return 8 ;
+            
+            break;
+        case 'I':
+            
+            return 9 ;
+            
+            break;
+        case 'J':
+            
+            return 10 ;
+            
+            break;
+        case 'K':
+            
+            return 11 ;
+            
+            break;
+        case 'L':
+            
+            return 12 ;
+            
+            break;
+        case 'M':
+            
+            return 13 ;
+            
+            break;
+        case 'N':
+            
+            return 14 ;
+            
+            break;
+        case 'O':
+            
+            return 15 ;
+            
+            break;
+        case 'P':
+            
+            return 16 ;
+            
+            break;
+        case 'Q':
+            
+            return 17 ;
+            
+            break;
+        case 'R':
+            
+            return 18 ;
+            
+            break;
+        case 'S':
+            
+            return 19 ;
+            
+            break;
+        case 'T':
+            
+            return 20 ;
+            
+            break;
+        case 'U':
+            
+            return 21 ;
+            
+            break;
+        case 'V':
+            
+            return 22 ;
+            
+            break;
+        case 'W':
+            
+            return 23 ;
+            
+            break;
+        case 'X':
+            
+            return 24 ;
+            
+            break;
+        case 'Y':
+            
+            return 25 ;
+            
+            break;
+        case 'Z':
+            
+            return 26 ;
+            
+            break;
+        case '.':
+            
+            return 27 ;
+            
+            break;
+            
+        case 'a':
+            
+            return 28 ;
+            
+            break;
+        case 'b':
+            
+            return 29 ;
+            
+            break;
+        case 'c':
+            
+            return 30 ;
+            
+            break;
+        case 'd':
+            
+            return 31 ;
+            
+            break;
+        case 'e':
+            
+            return 32 ;
+            
+            break;
+        case 'f':
+            
+            return 33 ;
+            
+            break;
+        case 'g':
+            
+            return 34 ;
+            
+            break;
+        case 'h':
+            
+            return 35 ;
+            
+            break;
+        case 'i':
+            
+            return 36 ;
+            
+            break;
+        case 'j':
+            
+            return 37 ;
+            
+            break;
+        case 'k':
+            
+            return 38 ;
+            
+            break;
+        case 'l':
+            
+            return 39 ;
+            
+            break;
+        case 'm':
+            
+            return 40 ;
+            
+            break;
+        case 'n':
+            
+            return 41 ;
+            
+            break;
+        case 'o':
+            
+            return 42 ;
+            
+            break;
+        case 'p':
+            
+            return 43 ;
+            
+            break;
+        case 'q':
+            
+            return 44 ;
+            
+            break;
+        case 'r':
+            
+            return 45 ;
+            
+            break;
+        case 's':
+            
+            return 46 ;
+            
+            break;
+        case 't':
+            
+            return 47 ;
+            
+            break;
+        case 'u':
+            
+            return 48 ;
+            
+            break;
+        case 'v':
+            
+            return 49 ;
+            
+            break;
+        case 'w':
+            
+            return 50 ;
+            
+            break;
+        case 'x':
+            
+            return 51 ;
+            
+            break;
+        case 'y':
+            
+            return 52 ;
+            
+            break;
+        case 'z':
+            
+            return 53 ;
+            
+            break;
+        case '0':
+            
+            return 54 ;
+            
+            break;
+            
+        case '1':
+            
+            return 55 ;
+            
+            break;
+            
+        case '2':
+            
+            return 56 ;
+            
+            break;
+            
+        case '3':
+            
+            return 57 ;
+            
+            break;
+            
+        case '4':
+            
+            return 58 ;
+            
+            break ;
+            
+        case '5':
+            
+            return 59 ;
+            
+            break;
+            
+        case '6':
+            
+            return 60 ;
+            
+            break;
+            
+        case '7':
+            
+            return 61 ;
+            
+            break;
+            
+        case '8':
+            
+            return 62 ;
+            
+            break;
+            
+        case '9':
+            
+            return 63 ;
+            
+            break;
+            
+        case '-':
+            
+            return 64 ;
+            
+            break;
+            
+        case '_':
+            
+            return 65 ;
+            
+            break;
+            
+        default:
+            
+            return 0 ;
+            
+            break;
+    }
+    
+    return 0 ;
+    
+}
+
+static pr_letter* PR_NewAlphabet( void ) {
+    
+    pr_letter* pr_alphabet = NULL ;
+    
+    int size = PR_MAX_PR_LETTER_NUM + 1 ;
+    
+    pr_alphabet = RKMem_CArray(size, pr_letter) ;
+    
+    int i = 0 ;
+    
+    while ( i <  size ) {
+        
+        pr_alphabet[i].m_id = 1 ;
+        
+        pr_alphabet[i].next_alphabet = NULL ;
+        
+        i++ ;
+    }
+    
+    return pr_alphabet ;
+    
+}
+
+static int PR_LookUpTypeID( pirates3d_scene scene3d, int* buffer, int size, int m_id ) {
+    
+    pr_letter* current_alphabet = NULL ;
+    
+    int i = 0 ;
+    
+    int value = 0 ;
+    
+    if ( scene3d->pirates3d_material_library == NULL ) {
+        
+        scene3d->pirates3d_material_library = PR_NewAlphabet() ;
+    }
+    
+    current_alphabet = scene3d->pirates3d_material_library ;
+    
+    while ( i < size ) {
+        
+        value = buffer[i] ;
+        
+        if ( value != 0 ) {
+            
+            if ( i == ( size - 1 ) ) {
+                
+                if ( m_id == -1 ) {
+                    
+                    return current_alphabet[value].m_id ;
+                    
+                } else {
+                    
+                    current_alphabet[value].m_id = m_id ;
+                    
+                    return current_alphabet[value].m_id ;
+
+                }
+                
+            } else {
+                
+                if ( current_alphabet[value].next_alphabet == NULL ) current_alphabet[value].next_alphabet = PR_NewAlphabet() ;
+                
+                current_alphabet = current_alphabet[value].next_alphabet ;
+                
+            }
+            
+        }
+        
+        i++ ;
+    }
+    
+    return 0 ;
+}
+
+static int PR_GetSetM_ID( pirates3d_scene scene3d, pr_string symbol, int m_id ) {
+    
+    int buffer[100] ;
+    
+    int strilen  = 0 ;
+    int i = 0 ;
+    
+    strilen = (int) strlen( symbol ) ;
+    
+    if ( strilen > 100 ) strilen = 100 ;
+    
+    while (i < strilen) {
+        
+        buffer[i] = PR_LookUpCharID( symbol[i] ) ;
+        
+        i++ ;
+    }
+    
+    return PR_LookUpTypeID( scene3d, buffer, strilen, m_id ) ;
+    
+}
+
+pirates3d_material pirates3d_new_material( pirates3d_scene scene3d, pirates3d_material_label label, float red, float blue, float green ) {
+    
+    pirates_Material material = pirates_newmaterial(Colorit(red, blue, green)) ;
+    
+    int m_id = pirates_addmaterial(scene3d->scene_rt, material) ;
+    
+    return PR_GetSetM_ID(scene3d,  label, m_id) ;
+}
+
+pirates3d_material pirates3d_get_material( pirates3d_scene scene3d, pirates3d_material_label label ) {
+    
+    return PR_GetSetM_ID(scene3d,  label, -1) ;
+}
+
+pirates3d_material pirates3d_change_material( pirates3d_scene scene3d, pirates3d_material_label label, float red, float blue, float green ) {
+    
+    int m_id = PR_GetSetM_ID(scene3d, label, -1) ;
+    
+    pirates_Material material = pirates_get_material_with_id(scene3d->scene_rt, m_id) ;
+    
+    material->color.r = red ;
+    
+    material->color.b = blue ;
+    
+    material->color.g = green ;
+    
+    return m_id ;
 }
 
 pirates3d_transform pirates3d_new_transform( void ) {
@@ -155,6 +639,8 @@ void pirates3d_delete_last_transform_set( pirates3d_transform transform ) {
 pirates3d_scene pirates3d_new_3dscene( pirates3d_camera camera, pirates_scene scene_rt ) {
     
     pirates3d_scene scene3d = RKMem_NewMemOfType(struct pirates3d_scene_s) ;
+    
+    scene3d->pirates3d_material_library = NULL ;
     
     scene3d->scene_rt = scene_rt ;
     
