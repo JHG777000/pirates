@@ -44,6 +44,22 @@ pirates3d_camera pirates3d_new_camera( float x, float y, float z, float fx, floa
     return new_cam ;
 }
 
+void pirates3d_change_camera( pirates3d_camera  camera, float x, float y, float z, float fx, float fy, float fz ) {
+    
+    RKMath_Vectorit(position, x, y, z) ;
+    
+    RKMath_Vectorit(focus, fx, fy, fz) ;
+    
+    RKMath_Equal(camera->Position, position, 3) ;
+    
+    RKMath_Equal(camera->Focus, focus, 3) ;
+}
+
+void pirates3d_destroy_camera( pirates3d_camera  camera ) {
+    
+    free(camera) ;
+}
+
 void pirates3d_set_camera_to_active( pirates3d_scene scene3d, pirates3d_camera camera ) {
     
     scene3d->camera->active = 0 ;
@@ -587,7 +603,7 @@ pirates3d_transform pirates3d_new_transform( void ) {
     return RKList_NewList() ;
 }
 
-static void pirates3d_apply_transform_to_transform_list( pirates3d_transform_entity transform, pirates3d_transform transform_list) {
+static void pirates3d_apply_transform_to_transform_list( pirates3d_transform_entity transform, pirates3d_transform transform_list, pirates3d_transform_mode mode) {
     
     if ( transform->transform == Rotation ) {
         
@@ -611,6 +627,11 @@ static void pirates3d_apply_transform_to_transform_list( pirates3d_transform_ent
     if ( RKList_GetNumOfNodes(transform_list) == 0 ) {
         
         RKList_AddToList(transform_list, (void*)transform) ;
+        
+        return ;
+    }
+    
+    if ( mode == replace ) {
         
         return ;
     }
@@ -659,9 +680,19 @@ static void pirates3d_apply_transform_to_transform_list( pirates3d_transform_ent
     }
 }
 
-void pirates3d_add_transform( pirates3d_transform transform, pirates3d_transform_type transform_type, float x, float y, float z, float w ) {
+void pirates3d_add_transform( pirates3d_transform transform, pirates3d_transform_type transform_type, pirates3d_transform_mode mode, float x, float y, float z, float w ) {
     
-    pirates3d_transform_entity transform_entity = RKMem_NewMemOfType(struct pirates3d_transform_entity_s) ;
+    pirates3d_transform_entity transform_entity = NULL ;
+    
+    if ( (mode == chain) || (RKList_GetNumOfNodes(transform) == 0) ) {
+    
+     transform_entity = RKMem_NewMemOfType(struct pirates3d_transform_entity_s) ;
+        
+    } else {
+        
+     transform_entity = (pirates3d_transform_entity)RKList_GetData(RKList_GetLastNode(transform)) ;
+        
+    }
     
     transform_entity->transform = transform_type ;
     
@@ -673,7 +704,7 @@ void pirates3d_add_transform( pirates3d_transform transform, pirates3d_transform
     
     transform_entity->Transform[3] = w ;
     
-    pirates3d_apply_transform_to_transform_list(transform_entity,transform) ;
+    pirates3d_apply_transform_to_transform_list(transform_entity,transform,mode) ;
 }
 
 void pirates3d_delete_last_transform_set( pirates3d_transform transform ) {

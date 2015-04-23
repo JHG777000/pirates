@@ -10,10 +10,6 @@
 
 static int init = 0 ;
 
-static int blue_id ;
-
-static int red_id ;
-
 static pirates3d_camera camera = NULL ;
 
 static pirates3d_scene scene3d = NULL ;
@@ -24,7 +20,7 @@ static pirates3d_primitive_array primitive_array = NULL ;
 
 void GameInit( IDKDrawArea Area ) {
   
-    RKMath_Vectorit(position, 0.1, 0.1 , -12.0) ;
+    RKMath_Vectorit(position, 0.0, 0.0 , 0.0) ;
     
     RKMath_Vectorit(focus, 0.0, 0.0, 0.0) ;
     
@@ -44,9 +40,9 @@ void GameInit( IDKDrawArea Area ) {
     
     transform = pirates3d_new_transform() ;
     
-    pirates3d_add_transform(transform, Rotation, 0, 1, 0, 1) ;
+    pirates3d_add_transform(transform, Rotation, chain, 0, 1, 0, 1) ;
     
-    pirates3d_add_transform(transform, Rotation, 1, 0, 0, 1) ;
+    pirates3d_add_transform(transform, Rotation, chain, 1, 0, 0, 1) ;
     
     init++ ;
     
