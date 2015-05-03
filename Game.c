@@ -18,13 +18,15 @@ static pirates3d_transform transform = NULL ;
 
 static pirates3d_primitive_array primitive_array = NULL ;
 
+static pirates3d_primitive_array primitive_array_2 = NULL ;
+
 void GameInit( IDKDrawArea Area ) {
   
     RKMath_Vectorit(position, 0.0, 0.0 , 0.0) ;
     
     RKMath_Vectorit(focus, 0.0, 0.0, 0.0) ;
     
-    pirates_scene scene_rt = pirates_new_scene(Area, 0, 1000000.0f, position, focus, 512, 512, 1, 35, 1) ;
+    pirates_scene scene_rt = pirates_new_scene(Area, 1, 1000000.0f, position, focus, 512, 512, 1, 100, 1) ;
     
     camera = pirates3d_new_camera(0, 0, 0, 0, 0, 0) ;
     
@@ -44,6 +46,8 @@ void GameInit( IDKDrawArea Area ) {
     
     pirates3d_add_transform(transform, Rotation, chain, 1, 0, 0, 1) ;
     
+    primitive_array_2 = pirates3d_new_sphere(scene3d, 10, 1.4f) ;
+    
     init++ ;
     
 }
@@ -53,6 +57,24 @@ void GameRun( IDKDrawArea Area ) {
     if (!init) GameInit(Area) ;
     
     pirates3d_apply_transform(transform, primitive_array) ;
+    
+    pirates3d_apply_transform(transform, primitive_array_2) ;
+    
+    static float xpos, ypos, zpos = 0 ;
+    
+    if ( IDK_GetKey(w_key) ) zpos += 10.01 ;
+    
+    if ( IDK_GetKey(s_key) ) zpos -= 10.01 ;
+    
+    if ( IDK_GetKey(a_key) ) xpos -= 0.01 ;
+    
+    if ( IDK_GetKey(d_key) ) xpos += 0.01 ;
+    
+    if ( IDK_GetLeftMouseButton() ) ypos -= 0.01 ;
+    
+    if ( IDK_GetRightMouseButton() ) ypos += 0.01 ;
+    
+    pirates3d_change_camera(camera,xpos,ypos,zpos,0,0,0) ;
     
     pirates3d_draw_3dscene(scene3d) ;
 }

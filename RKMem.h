@@ -43,9 +43,9 @@ RKList RKList_NewListFromArray( void* array, RKList_GetDataFromArrayFuncType Get
 
 RKList_node RKList_AddToList( RKList list, void* data ) ;
 
-void RKList_AddNodeToList(RKList list, RKList_node node) ;
+RKList_node RKList_AddNodeToList( RKList_node node, RKList list ) ;
 
-void RKList_MoveNodeFromListToList(RKList list_a, RKList list_b, RKList_node node) ;
+RKList_node RKList_MoveNodeFromListToList( RKList_node node, RKList list_a, RKList list_b ) ;
 
 void RKList_CopyList(RKList list_a, RKList list_b) ;
 

@@ -29,6 +29,113 @@ pirates_primitive_array primitive_array ; } ;
 
 struct pirates3d_scene_s { pirates3d_camera camera ; pr_letter* pirates3d_material_library ; pirates_scene scene_rt ; }  ;
 
+typedef void (*pirates3d_basic_primitive_func_type)(float x, float y, RKMVector data, RKMVector vertex) ;
+
+static RKMVector pirates3d_new_basic_primitive( int num_of_primitives, RKMVector UpperBound, RKMVector data, pirates3d_basic_primitive_func_type pirates3d_basic_primitive_func ) {
+    
+    int size = pirates_triangle_size() ;
+    
+    RKMVector retvec = RKMem_CArray(num_of_primitives * size, float) ;
+    
+    RKMath_NewVector(vertex, 3) ;
+    
+    float x = 0 ;
+    
+    float y = 0 ;
+    
+    int i = 0 ;
+    
+    int j = 0 ;
+    
+    int index = 0 ;
+    
+    int vertexes = 0 ;
+    
+    int nop = num_of_primitives ;
+    
+    while ( i < num_of_primitives ) {
+        
+        j = 0 ;
+        
+        while ( j < 3 ) {
+            
+            index = (i * size) + (j * 3) ;
+            
+            x = vertexes * UpperBound[0] / (nop-1) ;
+            
+            y = vertexes * UpperBound[1] / (nop-1) ;
+            
+            pirates3d_basic_primitive_func(x,y,data,vertex) ;
+            
+            retvec[index+0] = vertex[0] ;
+            
+            retvec[index+1] = vertex[1] ;
+            
+            retvec[index+2] = vertex[2] ;
+            
+            vertexes++ ;
+            j++ ;
+        }
+        
+        index = (i * size) ;
+        
+        retvec[index+pr_M] = 1 ;
+        
+        retvec[index+pr_UPDATE] = 0 ;
+        
+        i++ ;
+    }
+    
+    return retvec ;
+}
+
+static pirates3d_primitive_array pirates3d_new_primitive_array_for_basic_primitive( pirates3d_scene scene3d, int num_of_primitives, RKMVector UpperBound, RKMVector data, pirates3d_basic_primitive_func_type pirates3d_basic_primitive_func ) {
+    
+    RKMVector primitive_data = pirates3d_new_basic_primitive(num_of_primitives, UpperBound, data, pirates3d_basic_primitive_func) ;
+    
+    pirates3d_primitive_array primitive_array = pirates3d_new_primitive_array(scene3d, primitive_data, Triangles, pirates3d_dont_copy_but_delete_data, num_of_primitives) ;
+    
+    return primitive_array ;
+}
+
+static void pirates3d_sphere_func(float x, float y, RKMVector data, RKMVector vertex) {
+    
+    float u = x ;
+    
+    float v = y ;
+    
+    float radius = data[0] ;
+    
+    float pos_x = radius * sin(u) * cos(v) ;
+    
+    float pos_y = radius * cos(u) ;
+    
+    float pos_z = radius * -sin(u) * sin(v) ;
+    
+    vertex[0] = pos_x ;
+    
+    vertex[1] = pos_y ;
+    
+    vertex[2] = pos_z ;
+    
+    printf("posx:%f posy:%f posz:%f\n", pos_x, pos_y, pos_z) ;
+}
+
+pirates3d_primitive_array pirates3d_new_sphere( pirates3d_scene scene3d, int num_of_primitives, float radius ) {
+    
+    RKMath_NewVector(data, 1) ;
+    
+    RKMath_NewVector(UpperBound, 2) ;
+    
+    data[0] = radius ;
+    
+    UpperBound[0] = M_PI ;
+    
+    UpperBound[1] = M_PI * 2 ;
+    
+    return pirates3d_new_primitive_array_for_basic_primitive(scene3d, num_of_primitives, UpperBound, data, pirates3d_sphere_func) ;
+}
+
 pirates3d_camera pirates3d_new_camera( float x, float y, float z, float fx, float fy, float fz ) {
     
     pirates3d_camera new_cam = RKMem_NewMemOfType(struct pirates3d_camera_s) ;
@@ -55,7 +162,7 @@ void pirates3d_change_camera( pirates3d_camera  camera, float x, float y, float 
     RKMath_Equal(camera->Focus, focus, 3) ;
 }
 
-void pirates3d_destroy_camera( pirates3d_camera  camera ) {
+void pirates3d_destroy_camera( pirates3d_camera camera ) {
     
     free(camera) ;
 }
@@ -723,6 +830,8 @@ pirates3d_scene pirates3d_new_3dscene( pirates3d_camera camera, pirates_scene sc
     scene3d->scene_rt = scene_rt ;
     
     scene3d->camera = camera ;
+    
+    camera->active = 1 ;
     
     return scene3d ;
 }

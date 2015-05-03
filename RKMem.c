@@ -104,25 +104,27 @@ RKList_node RKList_AddToList( RKList list, void* data ) {
     return list->last ;
 }
 
-void RKList_AddNodeToList(RKList list, RKList_node node) {
+RKList_node RKList_AddNodeToList( RKList_node node, RKList list ) {
     
-    RKList_AddToList(list, node->data) ;
+    return RKList_AddToList(list, node->data) ;
 }
 
-void RKList_MoveNodeFromListToList(RKList list_a, RKList list_b, RKList_node node) {
+RKList_node RKList_MoveNodeFromListToList( RKList_node node, RKList list_a, RKList list_b ) {
     
-    RKList_AddNodeToList(list_b,node) ;
+    RKList_node new_node = RKList_AddNodeToList( node, list_b ) ;
     
     RKList_DeleteNode(list_a, node) ;
+    
+    return new_node ;
 }
 
 void RKList_CopyList(RKList list_a, RKList list_b) {
     
-    RKList_node node = RKList_GetFirstNode(list_b) ;
+    RKList_node node = RKList_GetFirstNode(list_a) ;
     
     while ( node != NULL ) {
         
-        RKList_AddNodeToList(list_a, node) ;
+        RKList_AddNodeToList( node, list_b ) ;
         
         node = RKList_GetNextNode(node) ;
     }

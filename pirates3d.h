@@ -32,6 +32,8 @@ typedef struct pirates3d_camera_s* pirates3d_camera ;
 
 typedef struct pirates3d_scene_s* pirates3d_scene ;
 
+pirates3d_primitive_array pirates3d_new_sphere( pirates3d_scene scene3d, int num_of_primitives, float radius ) ;
+
 pirates3d_camera pirates3d_new_camera( float x, float y, float z, float fx, float fy, float fz ) ;
 
 void pirates3d_change_camera( pirates3d_camera  camera, float x, float y, float z, float fx, float fy, float fz ) ;

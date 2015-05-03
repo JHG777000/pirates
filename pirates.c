@@ -193,18 +193,18 @@ void pirates_destroy_bins( pirates_scene scene ) {
     
     while ( i < scene->scene_bin->num_of_bins_in_scene) {
         
-        if (!scene->scene_bin->scene_bin_array[i]->root) RKList_DeleteList(scene->scene_bin->scene_bin_array[i]->primitive_list) ;
+         RKList_DeleteList(scene->scene_bin->scene_bin_array[i]->primitive_list) ;
         
-        free(scene->scene_bin->scene_bin_array[i]->bin_array) ;
+         RKList_DeleteList(scene->scene_bin->scene_bin_array[i]->bin_list) ;
         
-        free(scene->scene_bin->scene_bin_array[i]) ;
+         free(scene->scene_bin->scene_bin_array[i]) ;
         
         i++ ;
     }
     
-    free(scene->scene_bin->scene_bin_array) ;
+    RKList_DeleteList(scene->scene_bin->bin_list) ;
     
-    free(scene->scene_bin->bin_array) ;
+    free(scene->scene_bin->scene_bin_array) ;
     
     free(scene->scene_bin) ;
 }
@@ -398,7 +398,12 @@ static int pirates_triangle_update_func(void* data) {
     return retval ;
 }
 
-pirates_volume pirates_new_volume( void* data, int can_and_should_delete, pirates_intersection_func_type intersection_func, pirates_update_func_type update_func ) {
+static int pirates_triangle_get_mid_func(void* data) {
+    
+    return (((RKMVector)data)[pr_M] - 1) ;
+}
+
+pirates_volume pirates_new_volume( void* data, int can_and_should_delete, pirates_intersection_func_type intersection_func, pirates_update_func_type update_func, pirates_get_mid_func_type get_mid_func ) {
     
     pirates_volume volume = RKMem_NewMemOfType(pirates_volume_object) ;
     
@@ -407,6 +412,8 @@ pirates_volume pirates_new_volume( void* data, int can_and_should_delete, pirate
     volume->can_and_should_delete = can_and_should_delete ;
     
     volume->intersection_func = intersection_func ;
+    
+    volume->get_mid_func = get_mid_func ;
     
     volume->update_func = update_func ;
     
@@ -461,7 +468,7 @@ static pirates_volume pirates_make_bounding_sphere_for_triangle(void* data) {
     
     sphere[3] = r ;
     
-    return pirates_new_volume((void*)sphere,1,pirates_sphere_intersection,NULL) ;
+    return pirates_new_volume((void*)sphere,1,pirates_sphere_intersection,NULL,NULL) ;
 }
 
 static pirates_bounding_box pirates_triangle_bounding_box_func(void* data) {
@@ -491,8 +498,6 @@ void pirates_make_triangle_primitive( pirates_scene scene, pirates_primitive_arr
     primitive->bounding_volume_func = pirates_make_bounding_sphere_for_triangle ;
     
     primitive->bounding_volume = primitive->bounding_volume_func(primitive->shape_volume->data) ;
-    
-    primitive->t = 0 ;
     
     RKTasks_LockLock(scene->SubLock) ;
     
@@ -533,7 +538,7 @@ void pirates_add_triangle_array( pirates_scene scene, pirates_primitive_array pr
         
         triangle = pr_gettriangle(triangles,i) ;
         
-        pirates_make_triangle_primitive(scene,primitive_array,pirates_new_volume((void*)triangle,can_and_should_delete,pirates_triangle_intersection,pirates_triangle_update_func),pirates_compute_triangle_bounding_box(triangle)) ;
+        pirates_make_triangle_primitive(scene,primitive_array,pirates_new_volume((void*)triangle,can_and_should_delete,pirates_triangle_intersection,pirates_triangle_update_func,pirates_triangle_get_mid_func),pirates_compute_triangle_bounding_box(triangle)) ;
         
         i++ ;
     }
@@ -831,6 +836,8 @@ void pirates_proc_scene( pirates_scene scene ) {
     
     node = RKList_GetFirstNode(scene->primitive_list) ;
     
+    scene->box_init = 0 ;
+    
     while (node != NULL) {
         
         if ( deadnode != NULL ) {
@@ -851,35 +858,19 @@ void pirates_proc_scene( pirates_scene scene ) {
                 pirates_destroy_volume(primitive->bounding_volume) ;
                 
                 primitive->bounding_volume = primitive->bounding_volume_func(primitive->shape_volume->data) ;
-                
-                scene->box_init = 0 ;
+        
             }
+            
+            pirates_compute_scene_bounding_box(scene, primitive->bounding_box) ;
             
         } else {
             
             pirates_destroy_primitive(primitive) ;
             
-            scene->box_init = 0 ;
-            
             deadnode = node ;
         }
         
         node = RKList_GetNextNode(node) ;
-    }
-    
-    if (!scene->box_init) {
-    
-      node = RKList_GetFirstNode(scene->primitive_list) ;
-    
-      while ( node != NULL ) {
-        
-          primitive = (pirates_primitive)RKList_GetData(node) ;
-        
-          pirates_compute_scene_bounding_box(scene, primitive->bounding_box) ;
-        
-          node = RKList_GetNextNode(node) ;
-      }
-    
     }
     
     pirates_createbins(scene) ;
@@ -906,12 +897,142 @@ pirates_scene_bin pirates_create_scene_bin(pirates_scene scene, int sort_min, in
     
     scene_bin->bigger_bin = NULL ;
     
+    scene_bin->bin_list = RKList_NewList() ;
+    
+    scene_bin->list_node = NULL ;
+    
     scene_bin->scene_bin_array = NULL ;
     
     scene_bin->num_of_bins_in_scene = 0 ;
     
     return scene_bin ;
     
+}
+
+void pirates_addBin( pirates_bin bin, pirates_bin** bin_array_ptr, int* num_of_bins ) ;
+
+pirates_bin pirates_make_bin( pirates_scene_bin scene_bin, pirates_primitive primitive, raycolor bin_color ) {
+    
+    pirates_bin new_bin = RKMem_NewMemOfType(pirates_bin_object) ;
+    
+    new_bin->root = 0 ;
+    
+    new_bin->bin_id = 0 ;
+    
+    new_bin->num_of_bins = 0 ;
+    
+    new_bin->bin_array = NULL ;
+    
+    new_bin->color = bin_color ;
+    
+    new_bin->bigger_bin = NULL ;
+    
+    new_bin->primitive_list = RKList_NewList() ;
+    
+    RKList_AddToList(new_bin->primitive_list, (void*)primitive) ;
+    
+    new_bin->bin_list = RKList_NewList() ;
+    
+    new_bin->list_node = NULL ;
+    
+    new_bin->bounding_box = primitive->bounding_box ;
+    
+    pirates_addBin(new_bin,&(scene_bin->scene_bin_array),&(scene_bin->num_of_bins_in_scene)) ;
+    
+    return new_bin ;
+
+}
+
+void pirates_recompute_bin_bounding_box( pirates_primitive primitive, pirates_bin bin ) {
+    
+    if ( primitive->bounding_box.X > bin->bounding_box.X ) bin->bounding_box.X = primitive->bounding_box.X ;
+    
+    if ( primitive->bounding_box.x < bin->bounding_box.x ) bin->bounding_box.x = primitive->bounding_box.x ;
+    
+    if ( primitive->bounding_box.Y > bin->bounding_box.Y ) bin->bounding_box.Y = primitive->bounding_box.Y ;
+    
+    if ( primitive->bounding_box.y < bin->bounding_box.y ) bin->bounding_box.y = primitive->bounding_box.y ;
+    
+    if ( primitive->bounding_box.Z > bin->bounding_box.Z ) bin->bounding_box.Z = primitive->bounding_box.Z ;
+    
+    if ( primitive->bounding_box.z < bin->bounding_box.z ) bin->bounding_box.z = primitive->bounding_box.z ;
+
+}
+
+void pirates_addprimitive_to_bin( pirates_primitive primitive, pirates_bin bin ) {
+    
+    //if ( bin->primitive_list == NULL ) bin->primitive_list = RKList_NewList() ;
+    
+    RKList_AddToList(bin->primitive_list, (void*)primitive) ;
+}
+
+void pirates_add_bin_to_bin( pirates_bin bin, pirates_bin bigger_bin ) ;
+
+void pirates_add_primitive_to_bin( pirates_scene_bin scene_bin, pirates_primitive primitive, pirates_bin bin, int primitive_max ) {
+    
+    pirates_bin new_bin = NULL ;
+    
+    if ( CheckXYZ(primitive->bounding_box, bin->bounding_box) ) {
+        
+        if (!bin->root) pirates_recompute_bin_bounding_box(primitive,bin) ;
+        
+        if ( (RKList_GetNumOfNodes(bin->primitive_list) > primitive_max) || (bin->root) ) {
+            
+            if ( RKList_GetNumOfNodes(bin->bin_list) == 0 ) {
+                
+                new_bin = pirates_make_bin(scene_bin, primitive, Colorthat(0.2)) ;
+                
+                pirates_add_bin_to_bin(new_bin,bin) ;
+                
+            } else {
+                
+                pirates_add_primitive_to_bin(scene_bin,primitive,(pirates_bin)RKList_GetData(RKList_GetFirstNode(bin->bin_list)),primitive_max) ;
+            }
+            
+        } else {
+            
+           pirates_addprimitive_to_bin(primitive,bin) ;
+            
+        }
+    
+    }
+    
+    if (!bin->root) {
+        
+        if ( RKList_GetNextNode(bin->list_node) != NULL ) {
+            
+            pirates_add_primitive_to_bin(scene_bin,primitive,(pirates_bin)RKList_GetData(RKList_GetNextNode(bin->list_node)),primitive_max) ;
+            
+        } else {
+            
+            new_bin = pirates_make_bin(scene_bin, primitive, Colorthat(0.2)) ;
+            
+            pirates_add_bin_to_bin(new_bin,bin) ;
+        }
+        
+    } else {
+        
+        new_bin = pirates_make_bin(scene_bin, primitive, Colorthat(0.2)) ;
+        
+        pirates_add_bin_to_bin(new_bin,bin) ;
+    }
+}
+
+void pirates_add_bin_to_bin( pirates_bin bin, pirates_bin bigger_bin ) {
+    
+    if ( bin->bigger_bin == NULL ) {
+    
+    bin->bigger_bin = bigger_bin ;
+    
+    bin->list_node = RKList_AddToList(bigger_bin->bin_list, (void*)bin) ;
+        
+    } else {
+      
+    bin->list_node = RKList_MoveNodeFromListToList(bin->list_node, bin->bigger_bin->bin_list, bigger_bin->bin_list) ;
+        
+    bin->bigger_bin = bigger_bin ;
+        
+    }
 }
 
 typedef struct { int flag ; pirates_bounding_box bounding_box ; pirates_geom_list primitive_list ; } Group_object ;
@@ -994,6 +1115,10 @@ pirates_bin pirates_new_bin( pirates_bin bigger_bin, Group Group_, raycolor bin_
     
     new_bin->bigger_bin = bigger_bin ;
     
+    new_bin->bin_list = RKList_NewList() ;
+    
+    new_bin->list_node = NULL ;
+    
     new_bin->primitive_list = Group_->primitive_list ;
     
     new_bin->bounding_box = Group_->bounding_box ;
@@ -1012,6 +1137,101 @@ void pirates_add_bin( Group Group_, raycolor bin_color, pirates_bin bin, pirates
     pirates_addBin(new_bin,&(bin->bin_array),&(bin->num_of_bins)) ;
     
     new_bin->bin_id = bin->num_of_bins ;
+
+}
+
+void pirates_make_the_bins( pirates_scene_bin scene_bin, pirates_primitive primitive ) {
+    
+     pirates_add_primitive_to_bin(scene_bin,primitive,(pirates_bin)scene_bin,scene_bin->level_max) ;
+}
+
+void pirates_make_bins( pirates_scene_bin scene_bin ) {
+    
+    pirates_geom_list_node node = NULL ;
+    
+    pirates_primitive primitive = NULL ;
+    
+    node = RKList_GetFirstNode(scene_bin->primitive_list) ;
+    
+    while ( node != NULL ) {
+        
+        primitive = (pirates_primitive)RKList_GetData(node) ;
+        
+        pirates_make_the_bins(scene_bin,primitive) ;
+        
+        node = RKList_GetNextNode(node) ;
+    }
+}
+
+void pirates_bins_basic_sort( pirates_bin bin, pirates_scene_bin scene_bin ) {
+    
+    pirates_bin new_bin = NULL ;
+    
+    pirates_bounding_box box = bin->bounding_box ;
+    
+    pirates_geom_list_node node = NULL ;
+    
+    pirates_primitive primitive = NULL ;
+    
+    int i = 0 ;
+    
+    int n = 4 ;
+    
+    float box_xval = box.x ;
+    
+    pirates_bounding_box* boxes = RKMem_CArray(n, pirates_bounding_box) ;
+    
+    Group* Groups = RKMem_CArray(n,Group) ;
+    
+    while ( i < n ) {
+        
+        boxes[i] = box ;
+        
+        boxes[i].x = box_xval ;
+        
+        box_xval = boxes[i].X = (((box.X) / n) * (i+1)) ;
+        
+        Groups[i] = NewGroup(boxes[i]) ;
+        
+        node = RKList_GetFirstNode(bin->primitive_list) ;
+        
+        while ( node != NULL ) {
+            
+            primitive = (pirates_primitive)RKList_GetData(node) ;
+            
+            if ( CheckXYZ(primitive->bounding_box,Groups[i]->bounding_box) ) {
+                
+                pirates_addPrimitive_to_Group(primitive,Groups[i]) ;
+                
+            }
+            
+            node = RKList_GetNextNode(node) ;
+        }
+        
+        new_bin = pirates_new_bin(NULL, Groups[i], Colorit(i*0.2, i*0.2, i*0.2)) ;
+        
+        pirates_add_bin_to_bin(new_bin, bin) ;
+        
+        //pirates_add_bin(Groups[i],Colorit(i*0.2, i*0.2, i*0.2),bin,new_bins,num_of_new_bins,scene_bin) ;
+        
+        i++ ;
+    }
+    
+    i = 0 ;
+    
+    while ( i < n ) {
+        
+        free(Groups[i]) ;
+        
+        i++ ;
+    }
+    
+    
+    if (!bin->root) RKList_DeleteAllNodesInList(bin->primitive_list) ;
+    
+    free(boxes) ;
+    
+    free(Groups) ;
 
 }
 
@@ -1101,7 +1321,7 @@ void pirates_makelevels( pirates_bins* level_bins, int* num_of_level_bins, pirat
     while ( i < (*num_of_level_bins) ) {
         
         if ( (RKList_GetNumOfNodes((*level_bins)[i]->primitive_list) < scene_bin->sort_max) )
-            pirates_bins_good_sort((*level_bins)[i],&new_bins,&num_of_new_bins,scene_bin) ;
+            pirates_bins_basic_sort((*level_bins)[i],scene_bin) ;
         
         
         //if ( ((*level_bins)[i]->numspheres > scene_bin->sort_max) ) //pirates_bins_bad_sort((*level_bins)[i]&new_bins,&num_of_new_bins,scene_bin) ;
@@ -1119,21 +1339,7 @@ void pirates_makelevels( pirates_bins* level_bins, int* num_of_level_bins, pirat
 
 void pirates_makebins( pirates_scene_bin scene_bin ) {
     
-    int level = 0 ;
-    
-    int num_of_level_bins = 0 ;
-    
-    pirates_bins level_bins = NULL ;
-    
-    while ( level < scene_bin->level_max ) {
-        
-        pirates_makelevels(&level_bins,&num_of_level_bins,scene_bin) ;
-        
-        level++ ;
-    }
-
-    free(level_bins) ;
-    
+    pirates_make_bins( scene_bin ) ;
 }
 
 void pirates_createbins(pirates_scene scene) {
@@ -1352,7 +1558,25 @@ float bin_intersection( Ray r, pirates_bin box ) {
 }
 
 
-typedef struct { raycolor color ; int hit ; int m_id ; double t ; } hitobj_object ;
+typedef struct { RKList bin_list ; } briefcase ;
+
+static briefcase new_briefcase( pirates_scene scene ) {
+    
+    briefcase brief ;
+    
+    brief.bin_list = RKList_NewList() ;
+    
+    scene->scene_bin->list_node = RKList_AddToList(brief.bin_list, (void*)scene->scene_bin) ;
+    
+    return brief ;
+}
+
+static void old_briefcase( briefcase brief ) {
+    
+    RKList_DeleteList(brief.bin_list) ;
+}
+
+typedef struct { raycolor color ; int hit ; } hitobj_object ;
 
 typedef hitobj_object hitobj ;
 
@@ -1367,9 +1591,7 @@ static void* BinArrayGetData(void* array, int index) {
     return (void*)bins[index] ;
 }
 
-pirates_Material pirates_get_material(pirates_scene scene, pirates_triangle triangle, hitobj* hit ) {
-    
-    hit->m_id = (int)(triangle[pr_M] - 1 ) ;
+pirates_Material pirates_get_material(pirates_scene scene, pirates_triangle triangle ) {
     
     return scene->materials[(int)(triangle[pr_M] - 1 )] ;
 }
@@ -1379,7 +1601,7 @@ pirates_Material pirates_get_material_with_id(pirates_scene scene, int m_id) {
     return scene->materials[m_id - 1] ;
 }
 
-hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
+hitobj pirates_find_object_via_bins( pirates_scene scene, briefcase brief, Ray r ) {
     
     FastList primitive_node ;
     
@@ -1387,29 +1609,23 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
     
     pirates_primitive primitive ;
     
-    pirates_primitive hit_primitive ;
+    pirates_primitive hit_primitive = NULL ;
     
     pirates_bin bin = NULL ;
     
-    pirates_bins bins = NULL ;
+    RKList bin_list = NULL ;
+    
+    FastList bin_node = NULL ;
     
     hitobj hit ;
     
     hit.color = Colorthat(0) ;
     
-    hit.m_id = 0 ;
-    
     hit.hit = 0 ;
-    
-    hit.t = 0 ;
-    
-    pirates_scene_bin scene_bin = scene->scene_bin ;
-    
-    int i = 0 ;
     
     double t = 0 ;
     
-    int num_of_bins = 0 ;
+    FastList_object object ;
     
     double draw_distance = scene->draw_distance ;
     
@@ -1417,35 +1633,33 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
     
     fbit.init = 0 ;
     
-    if (fast_bin_intersection(r,(pirates_bin)scene_bin,&fbit)) {
-        
-        bins = scene_bin->bin_array ;
-        
-        num_of_bins = scene_bin->num_of_bins ;
-        
-        if (scene->debug) color = Color_add(color, Colorit(0.2, 0.2, 0.2)) ;
-        
-        i = 0 ;
-        
+        bin_list = brief.bin_list ;
+    
+        bin_node = (FastList)RKList_GetFirstNode(bin_list) ;
+    
         while (1) {
             
-        while ( i < num_of_bins ) {
+        while ( bin_node != NULL ) {
             
-            bin = bins[i] ;
+            bin = (pirates_bin)bin_node->data ;
             
             if ( fast_bin_intersection(r,bin,&fbit) ) {
                 
-            if (scene->debug) color = Color_add(color, bin->color) ;
+                if (scene->debug) {
                 
-            if ( bin->num_of_bins > 0 ) {
+                    if (bin->root) {
+                    
+                    color = Color_add(color, Colorit(0.2, 0.2, 0.2)) ;
+                    
+                    } else {
+                        
+                    color = Color_add(color, bin->color) ;
+                        
+                    }
+                    
+                }
                 
-                bins = bin->bin_array ;
-                
-                num_of_bins = bin->num_of_bins ;
-                
-                i = -1 ;
-                
-            } else {
+                if ((RKList_GetNumOfNodes(bin->primitive_list) > 0) && (!bin->root)) {
                 
                 primitive_node = (FastList)RKList_GetFirstNode(bin->primitive_list) ;
                 
@@ -1457,15 +1671,11 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
                         
                         t = primitive->shape_volume->intersection_func(r,primitive->shape_volume->data) ;
                         
-                        if ((t) && (0 < t < draw_distance) ) {
-                            
-                            draw_distance = t ;
-                            
-                            pirates_get_material(scene, (pirates_triangle)primitive->shape_volume->data,&hit);
+                        if ( (t) && (0 < t < draw_distance) ) {
                             
                             hit.hit = 1 ;
                             
-                            hit.t = t ;
+                            draw_distance = t ;
                             
                             hit_primitive = primitive ;
                         }
@@ -1477,22 +1687,29 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
 
             }
                 
+                if ( RKList_GetNumOfNodes(bin->bin_list) > 0 ) {
+                    
+                    bin_list = bin->bin_list ;
+                    
+                    bin_node = (FastList)RKList_GetFirstNode(bin_list) ;
+                    
+                    object.after = bin_node ;
+                    
+                    bin_node = &object ;
+                }
+
             }
             
-            i++ ;
+            bin_node = bin_node->after ;
         }
-        
+            
             if ( bin == NULL ) break ;
             
             if ( bin->bigger_bin != NULL ) {
                 
-                i = bin->bin_id ;
+                bin_node = ((FastList)bin->list_node)->after ;
                 
                 bin = bin->bigger_bin ;
-                
-                num_of_bins = bin->num_of_bins ;
-                
-                if ( bin->root ) break ;
                 
             } else {
                 
@@ -1503,12 +1720,11 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
         
         if (hit.hit)  {
             
-         hit.color = scene->materials[hit.m_id]->color ;
+         hit.color = scene->materials[hit_primitive->shape_volume->get_mid_func(hit_primitive->shape_volume->data)]->color ;
         
          if (scene->debug) color = Color_add(color, hit.color) ;
             
         }
-    }
     
     if ( scene->debug ) {
     
@@ -1520,16 +1736,16 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, Ray r ) {
     
 }
 
-hitobj pirates_get_first_intersection( pirates_scene scene, Ray r ) {
+hitobj pirates_get_first_intersection( pirates_scene scene, briefcase brief, Ray r ) {
     
-     return pirates_find_object_via_bins(scene,r) ;
+     return pirates_find_object_via_bins(scene,brief,r) ;
 }
 
-raycolor pirates_ray_cast_func(Ray r, pirates_scene scene) {
+raycolor pirates_ray_cast_func(Ray r, briefcase brief, pirates_scene scene) {
     
      raycolor fincolor = Colorthat(0) ;
     
-     hitobj hit = pirates_get_first_intersection( scene, r ) ;
+     hitobj hit = pirates_get_first_intersection( scene, brief, r ) ;
     
      fincolor = Color_add(fincolor, hit.color) ;
    
@@ -1558,7 +1774,9 @@ static void xytest( int* x, int* y, int* pixel, int max_x, int max_y ) {
 }
 
 RKTasks_CreateTask(pirates_render_task, pirates_scene scene ; int num_of_tasks ; ,
-      
+    
+    briefcase brief = new_briefcase(RKTArgs->scene) ;
+                   
     int x = 0 ;
                    
     int y = 0 ;
@@ -1573,11 +1791,13 @@ RKTasks_CreateTask(pirates_render_task, pirates_scene scene ; int num_of_tasks ;
      
      if (pixel < 0) break ;
         
-     IDK_SetColor(RKTArgs->scene->scene2d, x, y, Colorout(Color_clamp( pirates_ray_cast_func(CastRay(RKTArgs->scene, RKTArgs->scene->Camera, x, y),RKTArgs->scene)))) ;
+     IDK_SetColor(RKTArgs->scene->scene2d, x, y, Colorout(Color_clamp( pirates_ray_cast_func(CastRay(RKTArgs->scene, RKTArgs->scene->Camera, x, y),brief,RKTArgs->scene)))) ;
          
      pixel += RKTArgs->num_of_tasks ;
                        
     }
+                   
+    old_briefcase(brief) ;
 ) ;
 
 void pirates_render(pirates_scene scene) {

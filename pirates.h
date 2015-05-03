@@ -76,6 +76,8 @@ typedef RKMVector pirates_triangles ; //N-Vector
 
 #define pr_M 9
 
+#define pr_UPDATE 10
+
 #define pr_trigupdate(triangle) triangle[10]
 
 #define pr_resettrigupdate(triangle) triangle[10] = 0
@@ -94,7 +96,7 @@ typedef RKList_node pirates_geom_list_node ;
 
 typedef struct pirates_bin_s { int root ; int bin_id ; pirates_bounding_box bounding_box ; struct pirates_bin_s* bigger_bin ;
     
-struct pirates_bin_s** bin_array ; int num_of_bins ;
+struct pirates_bin_s** bin_array ; int num_of_bins ; RKList_node list_node ; RKList bin_list ;
     
 pirates_geom_list primitive_list ; raycolor color ; } pirates_bin_object ;
 
@@ -104,7 +106,7 @@ typedef pirates_bin* pirates_bins ;
 
 typedef struct { int root ; int bin_id ; pirates_bounding_box bounding_box ; struct pirates_bin_s* bigger_bin ;
     
-pirates_bins bin_array ; int num_of_bins ; pirates_geom_list primitive_list ; raycolor color ;
+pirates_bins bin_array ; int num_of_bins ; RKList_node list_node ; RKList bin_list ; pirates_geom_list primitive_list ; raycolor color ;
     
 int sort_min ; int sort_max ; int level_max ; pirates_bins scene_bin_array ;
     
@@ -118,7 +120,9 @@ typedef double (*pirates_intersection_func_type)(Ray ray, void* data) ;
 
 typedef int (*pirates_update_func_type)(void* data) ;
 
-typedef struct { pirates_intersection_func_type intersection_func ; pirates_update_func_type update_func ;
+typedef int (*pirates_get_mid_func_type)(void* data) ;
+
+typedef struct { pirates_intersection_func_type intersection_func ; pirates_update_func_type update_func ; pirates_get_mid_func_type get_mid_func ;
     
 int can_and_should_delete ; void* data ; } pirates_volume_object ;
 
@@ -130,7 +134,7 @@ typedef pirates_bounding_box (*pirates_bounding_box_func_type)(void* data) ;
 
 typedef struct { pirates_primitive_array primitive_array ; pirates_bounding_box bounding_box ; pirates_bounding_box_func_type bounding_box_func ;
     
-pirates_volume bounding_volume ; pirates_bounding_volume_func_type bounding_volume_func ; pirates_volume shape_volume ; double t ; } pirates_primitive_object ;
+pirates_volume bounding_volume ; pirates_bounding_volume_func_type bounding_volume_func ; pirates_volume shape_volume ; } pirates_primitive_object ;
 
 typedef pirates_primitive_object* pirates_primitive ;
 
