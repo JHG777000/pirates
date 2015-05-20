@@ -190,6 +190,22 @@ void RKMath_Norm(float outvec[], float vec[], const int size) {
     }
 }
 
+//The Quake 3 InvSqrt
+
+static float InvSqrt (float x){
+    float xhalf = 0.5f*x;
+    int i = *(int*)&x;
+    i = 0x5f3759df - (i>>1);
+    x = *(float*)&i;
+    x = x*(1.5f - xhalf*x*x);
+    return x;
+}
+
+float RKMath_Sqrt( float x ) {
+    
+    return x * InvSqrt(x) ;
+}
+
  float RKMath_Distance(const float vec_a[], const float vec_b[], const int size) {
     
     int i = 0 ;

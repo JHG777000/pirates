@@ -15,6 +15,8 @@
 #include "RKTasks.h"
 #include "IDK.h"
 
+typedef struct { double entry ; double exit ; RKMath_NewVector(inv_dir, 3) ; int sign[3] ; int init ; } fast_bin_intersection_type ;
+
 //Color
 typedef codename_pixelcolor raypixel_ref ;
 typedef struct {float r ; float b ; float g ;} raycolor ;
@@ -26,7 +28,7 @@ raycolor Color_mul(raycolor color_a, raycolor color_b) ;
 raycolor Color_clamp(raycolor color) ;
 
 //Ray
-typedef struct { RKMath_NewVector(origin, 3) ; RKMath_NewVector(direction, 3) ; } Ray ;
+typedef struct { RKMath_NewVector(origin, 3) ; RKMath_NewVector(direction, 3) ; fast_bin_intersection_type fbit ; } Ray ;
 Ray newray(RKMVector origin , RKMVector direction ) ;
 void Ray_position(RKMVector retvec, Ray ray, float distance) ;
 
@@ -96,7 +98,7 @@ typedef RKList_node pirates_geom_list_node ;
 
 typedef struct pirates_bin_s { int root ; int bin_id ; pirates_bounding_box bounding_box ; struct pirates_bin_s* bigger_bin ;
     
-struct pirates_bin_s** bin_array ; int num_of_bins ; RKList_node list_node ; RKList bin_list ;
+struct pirates_bin_s** bin_array ; int num_of_bins ; RKList_node list_node ; RKList bin_list ; int bin_max ; 
     
 pirates_geom_list primitive_list ; raycolor color ; } pirates_bin_object ;
 
@@ -106,9 +108,9 @@ typedef pirates_bin* pirates_bins ;
 
 typedef struct { int root ; int bin_id ; pirates_bounding_box bounding_box ; struct pirates_bin_s* bigger_bin ;
     
-pirates_bins bin_array ; int num_of_bins ; RKList_node list_node ; RKList bin_list ; pirates_geom_list primitive_list ; raycolor color ;
+pirates_bins bin_array ; int num_of_bins ; RKList_node list_node ; RKList bin_list ; int bin_max ;
     
-int sort_min ; int sort_max ; int level_max ; pirates_bins scene_bin_array ;
+pirates_geom_list primitive_list ; raycolor color ; int sort_min ; int sort_max ; int level_max ; pirates_bins scene_bin_array ;
     
 int num_of_bins_in_scene ; } pirates_scene_bin_object ;
 

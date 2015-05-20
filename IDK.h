@@ -29,7 +29,9 @@ int rect_x ; int rect_y ; } IDKDrawArea_object ;
 
 typedef IDKDrawArea_object* IDKDrawArea ;
 
-typedef enum { w_key = 0, a_key = 1, s_key = 2, d_key = 3, right_key = 4, left_key = 5, up_key = 6, down_key = 7 } IDK_Key ;
+typedef enum { w_key = 0, a_key = 1, s_key = 2, d_key = 3, right_key = 4, left_key = 5, up_key = 6, down_key = 7,
+    
+q_key = 8, e_key = 9, numpad_8 = 10, numpad_4 = 11, numpad_5 = 12, numpad_6 = 13, numpad_7 = 14, numpad_9 = 15 } IDK_Key ;
 
 void IDK_theMouse( float x, float y ) ;
 void IDK_setMouseActive( void ) ;

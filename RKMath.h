@@ -81,6 +81,8 @@ vec_a[2] = vec_b[2]  \
 
  void RKMath_Norm(float outvec[], float vec[], const int size) ;
 
+ float RKMath_Sqrt( float x ) ;
+
  float RKMath_Distance(const float vec_a[], const float vec_b[], const int size) ;
 
  void RKMath_MinMax( float min_vec[], float max_vec[], float vec_a[], float vec_b[], const int size ) ;

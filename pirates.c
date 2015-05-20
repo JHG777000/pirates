@@ -14,6 +14,10 @@
 
 static int framcount = 0 ;
 
+typedef struct FastList_s { struct FastList_s* before ; struct FastList_s* after ; void* data ; } FastList_object ;
+
+typedef FastList_object* FastList ;
+
 static void pirates_destroymaterials( pirates_scene scene ) ;
 
 static void pirates_delete_triangle_arrays( pirates_scene scene ) ;
@@ -22,7 +26,7 @@ static void ComputeBoundingSphere(  RKMVector A,  RKMVector B,  RKMVector C, flo
 
 void pirates_addfloat( float float_, float** float_array_ptr, int* num_of_floats ) ;
 
-static int ARandomNumber( int randmax ) {
+static int ARandomNumber( int randmin, int randmax ) {
     
     static long state = 0 ;
     
@@ -34,7 +38,7 @@ static int ARandomNumber( int randmax ) {
     
     randmax++ ;
     
-    if ( randmax == 0 ) randmax = 1 ;
+    if ( randmax <= 0 ) randmax = 1 ;
     
     if (!init) {
         
@@ -51,7 +55,12 @@ static int ARandomNumber( int randmax ) {
     
     randval = (int) state % randmax ;
     
-    return (randval < 0) ? -randval : randval ;
+    randval = (randval < 0) ? -randval : randval ;
+    
+    randval = (randval < randmin) ? ARandomNumber(randmin, randmax) : randval ;
+    
+    return  randval ;
+    
 }
 
 raycolor Colorit(float red, float blue, float green) {
@@ -303,7 +312,7 @@ static float Sphere_Intersection(Ray ray, RKMVector sphere) {
     float d = (b*b) - c ;
     
     if (d > 0) {
-        return -b - sqrt(d) ;
+        return -b - RKMath_Sqrt(d) ;
     } else
         return 0 ;
 }
@@ -476,6 +485,30 @@ static pirates_bounding_box pirates_triangle_bounding_box_func(void* data) {
     pirates_triangle triangle = (pirates_triangle)data ;
     
     return pirates_compute_triangle_bounding_box(triangle) ;
+}
+
+float fast_bin_intersection( Ray r, pirates_bin box, fast_bin_intersection_type* fbit_ptr ) ;
+
+static double pirates_bin_intersection(Ray ray, void* data) {
+    
+    pirates_bounding_box* box = (pirates_bounding_box*)data ;
+    
+    pirates_bin_object bin_object ;
+    
+    bin_object.bounding_box = *box ;
+    
+    return fast_bin_intersection(ray, &bin_object, &ray.fbit) ;
+}
+
+static pirates_volume pirates_triangle_bounding_box_volume_func(void* data) {
+    
+    pirates_bounding_box box = pirates_triangle_bounding_box_func(data) ;
+    
+    void* box_array = malloc(sizeof(box)) ;
+    
+    memcpy(box_array, &box, sizeof(box)) ;
+    
+    return pirates_new_volume((void*)box_array,1,pirates_bin_intersection,NULL,NULL) ;
 }
 
 int pirates_triangle_size( void ) {
@@ -826,6 +859,8 @@ void pirates_add_geom_to_bins( pirates_scene scene, pirates_scene_bin scene_bin 
     scene_bin->bounding_box = scene->bounding_box ;
 }
 
+void pirates_make_the_bins( pirates_scene_bin scene_bin, pirates_primitive primitive ) ;
+
 void pirates_proc_scene( pirates_scene scene ) {
     
     pirates_geom_list_node deadnode = NULL ;
@@ -833,6 +868,10 @@ void pirates_proc_scene( pirates_scene scene ) {
     pirates_geom_list_node node = NULL ;
     
     pirates_primitive primitive = NULL ;
+    
+    //scene->scene_bin = pirates_create_scene_bin(scene, scene->sort_min, scene->sort_max, scene->level_max) ;
+    
+    //pirates_add_geom_to_bins(scene, scene->scene_bin) ;
     
     node = RKList_GetFirstNode(scene->primitive_list) ;
     
@@ -860,6 +899,8 @@ void pirates_proc_scene( pirates_scene scene ) {
                 primitive->bounding_volume = primitive->bounding_volume_func(primitive->shape_volume->data) ;
         
             }
+            
+            //pirates_make_the_bins(scene->scene_bin,primitive) ;
             
             pirates_compute_scene_bounding_box(scene, primitive->bounding_box) ;
             
@@ -929,13 +970,13 @@ pirates_bin pirates_make_bin( pirates_scene_bin scene_bin, pirates_primitive pri
     
     new_bin->primitive_list = RKList_NewList() ;
     
-    RKList_AddToList(new_bin->primitive_list, (void*)primitive) ;
+    if (primitive != NULL) RKList_AddToList(new_bin->primitive_list, (void*)primitive) ;
     
     new_bin->bin_list = RKList_NewList() ;
     
     new_bin->list_node = NULL ;
     
-    new_bin->bounding_box = primitive->bounding_box ;
+    if (primitive != NULL) new_bin->bounding_box = primitive->bounding_box ;
     
     pirates_addBin(new_bin,&(scene_bin->scene_bin_array),&(scene_bin->num_of_bins_in_scene)) ;
     
@@ -961,19 +1002,66 @@ void pirates_recompute_bin_bounding_box( pirates_primitive primitive, pirates_bi
 
 void pirates_addprimitive_to_bin( pirates_primitive primitive, pirates_bin bin ) {
     
-    //if ( bin->primitive_list == NULL ) bin->primitive_list = RKList_NewList() ;
-    
     RKList_AddToList(bin->primitive_list, (void*)primitive) ;
 }
 
+
+static int IsClose( pirates_scene_bin scene_bin, pirates_bounding_box object,  pirates_bounding_box box ) ;
+
 void pirates_add_bin_to_bin( pirates_bin bin, pirates_bin bigger_bin ) ;
+
+static float GetDistance( pirates_bounding_box object,  pirates_bounding_box box ) {
+    
+    RKMath_Vectorit(boxpos, box.x, box.y, box.z) ;
+    
+    RKMath_Vectorit(objectpos, object.x, object.y, object.z) ;
+    
+    return RKMath_Distance(objectpos, boxpos, 3) ;
+}
+
+static int IsClose( pirates_scene_bin scene_bin, pirates_bounding_box object,  pirates_bounding_box box ) {
+    
+    float dist = 0 ;
+    
+    float dist2 = 0 ;
+    
+    RKMath_Vectorit(boxpos, box.x, box.y, box.z) ;
+    
+    RKMath_Vectorit(objectpos, object.x, object.y, object.z) ;
+    
+    RKMath_Vectorit(min, scene_bin->bounding_box.x, scene_bin->bounding_box.y, scene_bin->bounding_box.z) ;
+    
+    RKMath_Vectorit(max, scene_bin->bounding_box.X, scene_bin->bounding_box.Y, scene_bin->bounding_box.Z) ;
+    
+    dist = RKMath_Distance(objectpos, boxpos, 3) ;
+    
+    dist2 = RKMath_Distance(min, max, 3) ;
+    
+    float close = (dist/dist2) * 100 ;
+    
+    if ( (close < 5) && (close > 0) ) return 1 ;
+    
+    return 0 ;
+}
 
 void pirates_add_primitive_to_bin( pirates_scene_bin scene_bin, pirates_primitive primitive, pirates_bin bin, int primitive_max ) {
     
+    pirates_bin nearest_bin = NULL ;
+    
     pirates_bin new_bin = NULL ;
     
-    if ( CheckXYZ(primitive->bounding_box, bin->bounding_box) ) {
-        
+    pirates_bin next_bin = NULL ;
+    
+    RKList_node node = NULL ;
+    
+    float nearest = 0 ;
+    
+    float value = 0 ;
+    
+    int gate = 0 ;
+    
+    if (bin == NULL) return ;
+    
         if (!bin->root) pirates_recompute_bin_bounding_box(primitive,bin) ;
         
         if ( (RKList_GetNumOfNodes(bin->primitive_list) > primitive_max) || (bin->root) ) {
@@ -986,7 +1074,57 @@ void pirates_add_primitive_to_bin( pirates_scene_bin scene_bin, pirates_primitiv
                 
             } else {
                 
-                pirates_add_primitive_to_bin(scene_bin,primitive,(pirates_bin)RKList_GetData(RKList_GetFirstNode(bin->bin_list)),primitive_max) ;
+                gate = 0 ;
+                
+                node = RKList_GetFirstNode(bin->bin_list) ;
+                
+                while ( node != NULL ) {
+                    
+                    next_bin = RKList_GetData(node) ;
+                    
+                    value = GetDistance(primitive->bounding_box, next_bin->bounding_box) ;
+                    
+                    if ( nearest_bin == NULL ) {
+                        
+                        nearest = value ;
+                        
+                        nearest_bin = next_bin ;
+                    }
+                    
+                    if ( value < nearest ) {
+                        
+                        nearest = value ;
+                        
+                        nearest_bin = next_bin ;
+                    }
+                    
+                    if ( CheckXYZ(primitive->bounding_box, next_bin->bounding_box) || IsClose(scene_bin, primitive->bounding_box, next_bin->bounding_box) ) {
+                        
+                        pirates_add_primitive_to_bin(scene_bin, primitive, next_bin, primitive_max) ;
+                        
+                        gate = 1 ;
+                        
+                        break ;
+                    }
+                    
+                    node = RKList_GetNextNode(node) ;
+                }
+ 
+                if (!gate)  {
+                
+                if ( RKList_GetNumOfNodes(bin->bin_list) < scene_bin->bin_max  ) {
+                 
+                    new_bin = pirates_make_bin(scene_bin, primitive, Colorthat(0.2)) ;
+                    
+                    pirates_add_bin_to_bin(new_bin,bin) ;
+                    
+                } else {
+                 
+                    pirates_add_primitive_to_bin(scene_bin, primitive, nearest_bin, primitive_max) ;
+                    
+                }
+                 
+                }
             }
             
         } else {
@@ -996,31 +1134,10 @@ void pirates_add_primitive_to_bin( pirates_scene_bin scene_bin, pirates_primitiv
         }
     
     }
-    
-    if (!bin->root) {
-        
-        if ( RKList_GetNextNode(bin->list_node) != NULL ) {
-            
-            pirates_add_primitive_to_bin(scene_bin,primitive,(pirates_bin)RKList_GetData(RKList_GetNextNode(bin->list_node)),primitive_max) ;
-            
-        } else {
-            
-            new_bin = pirates_make_bin(scene_bin, primitive, Colorthat(0.2)) ;
-            
-            pirates_add_bin_to_bin(new_bin,bin) ;
-        }
-        
-    } else {
-        
-        new_bin = pirates_make_bin(scene_bin, primitive, Colorthat(0.2)) ;
-        
-        pirates_add_bin_to_bin(new_bin,bin) ;
-    }
-}
 
 void pirates_add_bin_to_bin( pirates_bin bin, pirates_bin bigger_bin ) {
     
-    if ( bin->bigger_bin == NULL ) {
+    if ( (bin->bigger_bin == NULL) || (bin->bigger_bin == bigger_bin) ) {
     
     bin->bigger_bin = bigger_bin ;
     
@@ -1142,7 +1259,9 @@ void pirates_add_bin( Group Group_, raycolor bin_color, pirates_bin bin, pirates
 
 void pirates_make_the_bins( pirates_scene_bin scene_bin, pirates_primitive primitive ) {
     
-     pirates_add_primitive_to_bin(scene_bin,primitive,(pirates_bin)scene_bin,scene_bin->level_max) ;
+     scene_bin->bin_max = 8 ;
+    
+     pirates_add_primitive_to_bin(scene_bin,primitive,(pirates_bin)scene_bin,scene_bin->sort_max) ;
 }
 
 void pirates_make_bins( pirates_scene_bin scene_bin ) {
@@ -1339,7 +1458,20 @@ void pirates_makelevels( pirates_bins* level_bins, int* num_of_level_bins, pirat
 
 void pirates_makebins( pirates_scene_bin scene_bin ) {
     
-    pirates_make_bins( scene_bin ) ;
+    int level = 0 ;
+    
+    int num_of_level_bins = 0 ;
+    
+    pirates_bins level_bins = NULL ;
+    
+    while ( level < scene_bin->level_max ) {
+        
+        pirates_makelevels(&level_bins,&num_of_level_bins,scene_bin) ;
+        
+        level++ ;
+    }
+    
+    free(level_bins) ;
 }
 
 void pirates_createbins(pirates_scene scene) {
@@ -1348,7 +1480,9 @@ void pirates_createbins(pirates_scene scene) {
     
     pirates_add_geom_to_bins(scene, scene->scene_bin) ;
     
-    pirates_makebins(scene->scene_bin) ;
+    pirates_make_bins( scene->scene_bin ) ;
+    
+    //pirates_makebins(scene->scene_bin) ;
 }
 
 void pirates_compute_scene_bounding_box( pirates_scene scene, pirates_bounding_box bounding_box ) {
@@ -1388,6 +1522,8 @@ Ray newray(RKMVector origin , RKMVector direction ) {
     
     Ray newray ;
     
+    newray.fbit.init = 0 ;
+    
     RKMath_VectorCopy(newray.origin, origin) ;
     
     RKMath_Norm(newray.direction, direction, 3) ;
@@ -1411,6 +1547,8 @@ Raycam pr_newcam(RKMVector position, RKMVector focus) {
     
     Raycam newraycam = (Raycam) malloc(sizeof(Raycam_object)) ;
     
+    pr_usecam(newraycam,position,focus) ;
+    
     return newraycam ;
 }
 
@@ -1432,9 +1570,37 @@ void freecam( Raycam cam ) {
 
 Ray CastRay(pirates_scene scene, Raycam raycam, float x, float y) {
     
-    RKMath_Vectorit(direction, (x * (0.5/scene->res_x)) - (0.5/2.0f), (y * (0.5/scene->res_y)) - (0.5/2.0f), 1) ;
+    float fov = 30 * (M_PI / 180) ;
     
-    return newray(raycam->position, direction) ;
+    float screen_distance = (scene->res_y/2)/tan(fov/2) ;
+    
+    RKMath_Vectorit(up_vec, 0, 1, 0) ;
+    
+    RKMath_NewVector(right_vec, 3) ;
+    
+    RKMath_Cross(right_vec, raycam->direction, up_vec) ;
+    
+    RKMath_Vectorthat(screen, screen_distance) ;
+    
+    RKMath_Vectorthat(x_vec, (x-(scene->res_x/2)) ) ;
+    
+    RKMath_Vectorthat(y_vec, (y-(scene->res_y/2)) ) ;
+    
+    RKMath_Neg(up_vec, 3) ;
+    
+    RKMath_Mul(x_vec, x_vec, right_vec, 3) ;
+    
+    RKMath_Mul(y_vec, y_vec, up_vec, 3) ;
+    
+    RKMath_Mul(screen, screen, raycam->direction, 3) ;
+    
+    RKMath_Add(screen, screen, raycam->position, 3) ;
+    
+    RKMath_Add(screen, screen, x_vec, 3) ;
+    
+    RKMath_Add(screen, screen, y_vec, 3) ;
+    
+    return newray(raycam->position, screen) ;
 }
 
 void pirates_addfloat( float float_, float** float_array_ptr, int* num_of_floats ) {
@@ -1464,8 +1630,6 @@ float fracf(float x) {
 }
 
 //From: An Efficient and Robust Ray–Box Intersection Algorithm: http://www.cs.utah.edu/~awilliam/box/box.pdf
-
-typedef struct { RKMath_NewVector(inv_dir, 3) ; int sign[3] ; int init ; } fast_bin_intersection_type ;
 
 float fast_bin_intersection( Ray r, pirates_bin box, fast_bin_intersection_type* fbit_ptr ) {
     
@@ -1522,6 +1686,10 @@ float fast_bin_intersection( Ray r, pirates_bin box, fast_bin_intersection_type*
     if ( (tmin > tzmax) || (tzmin > tmax) )
     return 0 ;
     
+    fbit_ptr->entry = tmin ;
+    
+    fbit_ptr->exit = tmax ;
+    
     return 1 ;
 }
 
@@ -1576,13 +1744,9 @@ static void old_briefcase( briefcase brief ) {
     RKList_DeleteList(brief.bin_list) ;
 }
 
-typedef struct { raycolor color ; int hit ; } hitobj_object ;
+typedef struct { raycolor color ; int hit ; double t ; } hitobj_object ;
 
 typedef hitobj_object hitobj ;
-
-typedef struct FastList_s { struct FastList_s* before ; struct FastList_s* after ; void* data ; } FastList_object ;
-
-typedef FastList_object* FastList ;
 
 static void* BinArrayGetData(void* array, int index) {
     
@@ -1629,10 +1793,6 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, briefcase brief, Ray r
     
     double draw_distance = scene->draw_distance ;
     
-    fast_bin_intersection_type fbit ;
-    
-    fbit.init = 0 ;
-    
         bin_list = brief.bin_list ;
     
         bin_node = (FastList)RKList_GetFirstNode(bin_list) ;
@@ -1643,7 +1803,7 @@ hitobj pirates_find_object_via_bins( pirates_scene scene, briefcase brief, Ray r
             
             bin = (pirates_bin)bin_node->data ;
             
-            if ( fast_bin_intersection(r,bin,&fbit) ) {
+            if ( fast_bin_intersection(r,bin,&r.fbit) ) {
                 
                 if (scene->debug) {
                 

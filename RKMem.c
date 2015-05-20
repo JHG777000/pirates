@@ -247,7 +247,7 @@ void RKList_DeleteAllNodesInList( RKList list ) {
 
 RKList_node RKList_GetNode( RKList list, int index ) {
     
-    int i = 0 ;
+    int i = 1 ;
     
     RKList_node node = list->first ;
     

@@ -146,6 +146,18 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
             
             break;
             
+        case GLFW_KEY_Q:
+            
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, q_key) ;
+            
+            break;
+            
+        case GLFW_KEY_E:
+            
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, e_key) ;
+            
+            break;
+            
         case GLFW_KEY_RIGHT:
             
             IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, right_key) ;
@@ -167,6 +179,42 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         case GLFW_KEY_DOWN:
             
             IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, down_key) ;
+            
+            break;
+            
+        case GLFW_KEY_KP_8:
+            
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, numpad_8) ;
+            
+            break;
+
+        case GLFW_KEY_KP_4:
+            
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, numpad_4) ;
+            
+            break;
+            
+        case GLFW_KEY_KP_5:
+            
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, numpad_5) ;
+            
+            break;
+            
+        case GLFW_KEY_KP_6:
+            
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, numpad_6) ;
+            
+            break;
+            
+        case GLFW_KEY_KP_7:
+            
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, numpad_7) ;
+            
+            break;
+            
+        case GLFW_KEY_KP_9:
+            
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, numpad_9) ;
             
             break;
             

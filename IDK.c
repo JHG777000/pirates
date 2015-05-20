@@ -12,7 +12,7 @@
 #include <time.h>
 #include "IDK.h"
 
-static int num_of_keys = 8 ;
+static int num_of_keys = 16 ;
 
 static int* key_array = NULL ;
 
